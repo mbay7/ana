@@ -1,0 +1,17 @@
+model:
+  embed: all-MiniLM-L6-v2
+  generate: anthropic/claude-sonnet-5
+
+retrieval:
+  top_k: 4
+  threshold: null   # set a similarity floor to enable "I don't know" abstention
+
+corpus_dir: corpus
+persona_file: personas/halo.txt
+max_tokens: 250
+
+ui:
+  title: "Halo — Ask a Halo Expert"
+  subtitle: "your skin's new best friend"
+  emoji: "🤍"
+  placeholder: "Ask Halo anything…"
