@@ -5,6 +5,8 @@ import urllib.request
 
 from .schema import Document
 
+DEFAULT_ABSTAIN = "I'm not sure about that, and I'd rather not guess. Let me connect you with a human who can help."
+
 
 def _api_key() -> str | None:
     key = os.environ.get("OPENROUTER_API_KEY")
@@ -20,19 +22,16 @@ def _api_key() -> str | None:
     return None
 
 
-def answer(
-    question: str,
-    contexts: list[Document],
-    persona: str,
-    model: str,
-    max_tokens: int = 200,
-    api_key: str | None = None,
-) -> str:
+def answer(question, hits, persona, model, max_tokens=250, threshold=None, abstain=None, api_key=None):
+    """hits: list of (Document, confidence). Abstain when top confidence < threshold."""
+    if threshold is not None and hits and hits[0][1] < threshold:
+        return abstain or DEFAULT_ABSTAIN
+
     key = api_key or _api_key()
     if not key:
         return "[no API key configured]"
 
-    ctx = "\n\n".join(f"[{d.source}] {d.text}" for d in contexts)
+    ctx = "\n\n".join(f"[{d.source}] {d.text}" for d, _ in hits)
     body = {
         "model": model,
         "messages": [

@@ -10,16 +10,30 @@ import re
 from .schema import Document
 
 
-def chunk_document(doc: Document, min_chars: int = 30) -> list[Document]:
-    parts = [p.strip() for p in re.split(r"\n\s*\n", doc.text)]
+def chunk_document(doc: Document, min_chars: int = 20) -> list[Document]:
+    blocks = re.split(r"\n\s*\n", doc.text)
     out: list[Document] = []
-    for i, part in enumerate(parts):
-        if not part or part.startswith("#"):
+    current_heading = ""
+    for i, block in enumerate(blocks):
+        body: list[str] = []
+        for line in block.rstrip("\n").split("\n"):
+            stripped = line.strip()
+            if stripped.startswith("#"):
+                current_heading = stripped.lstrip("#").strip()
+                continue
+            body.append(line)
+        text = "\n".join(body).strip()
+        if len(text) < min_chars:
             continue
-        if len(part) < min_chars:
-            continue
+        if current_heading:
+            text = f"{current_heading}: {text}"
         out.append(
-            Document(id=f"{doc.id}:{i}", text=part, source=doc.source, metadata={"chunk": i})
+            Document(
+                id=f"{doc.id}:{i}",
+                text=text,
+                source=doc.source,
+                metadata={"chunk": i, "heading": current_heading},
+            )
         )
     return out
 

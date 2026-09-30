@@ -4,14 +4,15 @@ model:
 
 retrieval:
   top_k: 4
-  threshold: null   # set a similarity floor to enable "I don't know" abstention
+  threshold: 0.32   # top-hit cosine below this -> abstain ("I don't know")
+  hybrid: false     # dense wins on this corpus (94% vs 88%); enable for exact-term-heavy corpora
 
 corpus_dir: corpus
-persona_file: personas/halo.txt
+persona_file: personas/store.txt
 max_tokens: 250
 
 ui:
-  title: "Halo — Ask a Halo Expert"
-  subtitle: "your skin's new best friend"
-  emoji: "🤍"
-  placeholder: "Ask Halo anything…"
+  title: "Store Assistant"
+  subtitle: "ask about our products and policies"
+  emoji: "🛍️"
+  placeholder: "Ask anything…"
