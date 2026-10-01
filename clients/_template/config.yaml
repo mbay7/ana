@@ -1,0 +1,26 @@
+# New client template — copy this whole folder to clients/<your-client>/ and fill it in.
+# See ../README.md for the onboarding steps.
+name: "Your Client Name"
+language: en
+
+model:
+  embed: all-MiniLM-L6-v2
+  generate: deepseek/deepseek-v4-flash   # or a stronger model per client
+
+retrieval:
+  top_k: 4
+  threshold: 0.32
+  hybrid: false
+
+corpus_dir: corpus
+persona_file: persona.txt
+max_tokens: 250
+
+ui:
+  title: "Assistant"
+  subtitle: "ask me anything"
+  emoji: "🤍"
+  placeholder: "Ask anything…"
+
+channels:
+  - web

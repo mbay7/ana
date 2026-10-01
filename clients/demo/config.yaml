@@ -1,0 +1,29 @@
+# Haven & Hearth — fictional UK homeware retailer (the demo/example client).
+name: "Haven & Hearth"
+language: en
+
+model:
+  embed: all-MiniLM-L6-v2
+  generate: deepseek/deepseek-v4-flash   # cheap for the demo; use a stronger model for production clients
+
+retrieval:
+  top_k: 4
+  threshold: 0.32   # top-hit cosine below this -> abstain ("I don't know")
+  hybrid: false
+
+corpus_dir: corpus
+persona_file: persona.txt
+max_tokens: 250
+
+ui:
+  title: "Store Assistant"
+  subtitle: "ask about our products and policies"
+  emoji: "🛍️"
+  placeholder: "Ask anything…"
+
+# Where this assistant can be deployed. `web` is wired (Streamlit); whatsapp /
+# instagram are connectors the client brings their own Meta keys for.
+channels:
+  - web
+  - whatsapp
+  - instagram

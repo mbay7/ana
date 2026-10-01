@@ -1,8 +1,8 @@
 # Shopassist — a reusable retrieval-augmented chat assistant
 
 A small, clean engine that answers customer questions from a brand's own
-documents, in a configurable voice. One engine, many clients: swap the corpus
-and the persona, and the core does not change.
+documents, in a configurable voice. One engine, many clients: each client is a
+self-contained folder, and the core does not change between them.
 
 ## What it does
 
@@ -16,20 +16,25 @@ and the persona, and the core does not change.
 
 ```
 shopassist/
-  config/default.yaml   # model names, top-k, threshold, hybrid flag, corpus + persona
-  corpus/               # the knowledge base (markdown) — swap per client
-  personas/             # the voice (a system prompt) — swap per client
+  app.py                 # Streamlit chat UI (repo-root entry)
+  chat.py                # CLI: ask questions from the terminal
+  clients/
+    demo/                # fictional demo client (safe to publish)
+      config.yaml        # brand, model, retrieval, ui, channels
+      persona.txt        # the voice
+      corpus/            # their markdown
+    _template/           # blank template — copy to onboard a new client
+    README.md            # onboarding + deploy guide
   src/
-    schema.py           # Document dataclass (the contract between stages)
-    loaders.py          # markdown dir -> [Document]
-    chunking.py         # heading-aware chunking
-    embed.py            # embedding model wrapper
-    bm25.py             # Okapi BM25 keyword ranking (numpy, no dep)
-    retrieve.py         # dense + hybrid retrieval, reciprocal rank fusion
-    generate.py         # persona-prompted LLM answer + abstention threshold
-  chat.py               # CLI: ask questions from the terminal
-  app/app.py            # Streamlit chat UI
-  eval/                 # golden set + deterministic retrieval metrics
+    schema.py            # Document dataclass (the contract between stages)
+    loaders.py           # markdown dir -> [Document]
+    chunking.py          # heading-aware chunking
+    embed.py             # embedding model wrapper
+    bm25.py              # Okapi BM25 keyword ranking (numpy, no dep)
+    retrieve.py          # dense + hybrid retrieval, reciprocal rank fusion
+    generate.py          # persona-prompted LLM answer + abstention threshold
+    config.py            # loads clients/<name>/config.yaml
+  eval/                  # golden set + deterministic retrieval metrics
 ```
 
 ## Run it
@@ -39,9 +44,11 @@ uv venv .venv && uv pip install -r requirements.txt
 export OPENROUTER_API_KEY=...   # or keep it in a .env (gitignored)
 
 python chat.py "How quickly does normal UK delivery take?"   # one question
-python chat.py                                               # run the example questions
-streamlit run app/app.py                                     # chat UI at localhost:8501
+python chat.py                                               # the example questions
+streamlit run app.py                                         # chat UI at localhost:8501
 ```
+
+Run a different client with `CLIENT=<name>` (defaults to `demo`).
 
 ## Evaluation
 
@@ -60,14 +67,14 @@ exact terms like SKUs, product codes, or model names. Full write-up in
 
 ## Onboarding a new client
 
-Add a `corpus/<brand>` folder, add a `personas/<brand>.txt`, and point
-`config/default.yaml` at both. No core code changes.
+Copy `clients/_template/` to `clients/<your-client>/`, fill in the config,
+persona, and corpus. No core code changes. See `clients/README.md`.
 
 ## Notes
 
 - Embeddings use `all-MiniLM-L6-v2` locally. The generator model, top-k,
-  abstention threshold, and hybrid flag are set in `config/default.yaml` and
-  can be swapped freely.
+  abstention threshold, and hybrid flag are set per client in their
+  `config.yaml` and can be swapped freely.
 - Answers are grounded in the provided context only, and the persona is told
   to say it does not know rather than invent. The abstention threshold makes
   that a hard guarantee instead of a hope.

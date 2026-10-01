@@ -5,3 +5,10 @@ __pycache__/
 .chroma/
 .cache/
 .DS_Store
+
+# Real client folders never ship to the public repo (client data is confidential).
+# Only the fictional demo and the blank template are committed.
+clients/*
+!clients/demo/
+!clients/_template/
+!clients/README.md
