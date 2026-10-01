@@ -1,9 +1,4 @@
-"""Streamlit chat UI for the reusable assistant."""
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
+"""Streamlit chat UI (repo-root entry; runs on Streamlit Community Cloud or locally)."""
 import streamlit as st
 
 from src.bm25 import BM25
@@ -29,6 +24,8 @@ def build():
 
 cfg, chunks, vecs, bm25, embedder, persona = build()
 ui = cfg.get("ui", {})
+# On Streamlit Cloud the OpenAI-compatible key is set as a dashboard secret.
+api_key = st.secrets.get("OPENROUTER_API_KEY", None) if hasattr(st, "secrets") else None
 
 st.set_page_config(page_title=ui.get("title", "Ask"), page_icon=ui.get("emoji", "🤍"))
 st.title(ui.get("title", "Ask"))
@@ -49,11 +46,16 @@ if prompt := st.chat_input(ui.get("placeholder", "Ask…")):
         with st.spinner("…"):
             qv = embedder.embed([prompt])[0]
             use_hybrid = cfg["retrieval"].get("hybrid", False)
-            hits = retrieve(prompt, qv, vecs, chunks, bm25=bm25 if use_hybrid else None, top_k=cfg["retrieval"]["top_k"])
+            hits = retrieve(
+                prompt, qv, vecs, chunks,
+                bm25=bm25 if use_hybrid else None,
+                top_k=cfg["retrieval"]["top_k"],
+            )
             a = answer(
                 prompt, hits, persona, cfg["model"]["generate"],
                 max_tokens=cfg.get("max_tokens", 250),
                 threshold=cfg["retrieval"].get("threshold"),
+                api_key=api_key,
             )
         st.markdown(a)
     st.session_state.messages.append({"role": "assistant", "content": a})
