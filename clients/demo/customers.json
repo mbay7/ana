@@ -1,0 +1,18 @@
+{
+  "customers": [
+    {
+      "id": "c1",
+      "name": "Sarah",
+      "email": "sarah@example.com",
+      "past_orders": ["washed linen duvet set (bought twice)", "solid oak shelf"],
+      "preferences": ["neutral tones", "natural materials", "low-maintenance"]
+    },
+    {
+      "id": "c2",
+      "name": "Omar",
+      "email": "omar@example.com",
+      "past_orders": ["brass table lamp", "chunky woollen throw"],
+      "preferences": ["warm lighting", "cosy textures", "evening reading"]
+    }
+  ]
+}

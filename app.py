@@ -5,6 +5,7 @@ from src.analytics import log, summarize
 from src.bm25 import BM25
 from src.chunking import chunk_documents
 from src.config import load_config
+from src.customers import identify, load_customers, profile_prompt
 from src.embed import Embedder
 from src.generate import answer, recommend
 from src.loaders import load_markdown_dir
@@ -26,7 +27,8 @@ def build():
     persona = open(cfg["persona_file"], encoding="utf-8").read()
     catalog = load_catalog(cfg.get("catalog_file"))
     catalog_vecs = embed_catalog(catalog, embedder)
-    return cfg, chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs
+    customers = load_customers(cfg.get("customers_file"))
+    return cfg, chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers
 
 
 def make_persona(name, voice):
@@ -37,7 +39,7 @@ def make_persona(name, voice):
     return base
 
 
-cfg, chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs = build()
+cfg, chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers = build()
 ui = cfg.get("ui", {})
 # On Streamlit Cloud the OpenAI-compatible key is set as a dashboard secret.
 api_key = st.secrets.get("OPENROUTER_API_KEY", None) if hasattr(st, "secrets") else None
@@ -172,10 +174,12 @@ else:
                 qv = embedder.embed([prompt])[0]
                 model = cfg["model"]["generate"]
                 max_tokens = cfg.get("max_tokens", 250)
+                customer = identify(prompt, customers)
+                cust_ctx = profile_prompt(customer) if customer else None
                 matches = recommend_products(qv, catalog, catalog_vecs)
                 if matches:
                     prods = [p for p, _ in matches]
-                    a = recommend(prompt, prods, persona, model, max_tokens=max_tokens, api_key=api_key)
+                    a = recommend(prompt, prods, persona, model, max_tokens=max_tokens, api_key=api_key, customer_ctx=cust_ctx)
                     log(
                         cfg["analytics_log"], question=prompt, answered=True,
                         source="catalog:" + prods[0].get("name", ""), confidence=matches[0][1],
@@ -193,7 +197,7 @@ else:
                     answered = top_conf >= (threshold or 0.0)
                     a = answer(
                         prompt, hits, persona, model,
-                        max_tokens=max_tokens, threshold=threshold, api_key=api_key,
+                        max_tokens=max_tokens, threshold=threshold, api_key=api_key, customer_ctx=cust_ctx,
                     )
                     log(
                         cfg["analytics_log"], question=prompt, answered=answered,

@@ -36,14 +36,15 @@ def _complete(messages, model, max_tokens=250, api_key=None):
         return json.loads(r.read())["choices"][0]["message"]["content"].strip()
 
 
-def answer(question, hits, persona, model, max_tokens=250, threshold=None, abstain=None, api_key=None):
+def answer(question, hits, persona, model, max_tokens=250, threshold=None, abstain=None, api_key=None, customer_ctx=None):
     """hits: list of (Document, confidence). Abstain when top confidence < threshold."""
     if threshold is not None and hits and hits[0][1] < threshold:
         return abstain or DEFAULT_ABSTAIN
     ctx = "\n\n".join(f"[{d.source}] {d.text}" for d, _ in hits)
+    system = persona if not customer_ctx else persona + "\n\n" + customer_ctx
     out = _complete(
         [
-            {"role": "system", "content": persona},
+            {"role": "system", "content": system},
             {"role": "user", "content": f"Use ONLY this info, in the persona's voice:\n\n{ctx}\n\nQuestion: {question}"},
         ],
         model, max_tokens, api_key,
@@ -51,15 +52,16 @@ def answer(question, hits, persona, model, max_tokens=250, threshold=None, absta
     return out if out is not None else "[no API key configured]"
 
 
-def recommend(question, products, persona, model, max_tokens=250, api_key=None):
+def recommend(question, products, persona, model, max_tokens=250, api_key=None, customer_ctx=None):
     """Recommend the best-matching product(s) in the persona's voice, with price + link."""
     lines = [
         f"- {p.get('name','')} ({p.get('price','?')}): {p.get('description','')} [link: {p.get('link','')}]"
         for p in products
     ]
     catalog = "\n".join(lines)
+    base = persona if not customer_ctx else persona + "\n\n" + customer_ctx
     sys = (
-        persona
+        base
         + "\n\nThe shopper wants a product recommendation. Pick the best match(es) from this list, "
         "say briefly WHY each fits their need, and give the name, price and link. Keep it warm and "
         "short, and do not invent anything that is not in the list."

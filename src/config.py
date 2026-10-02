@@ -24,6 +24,7 @@ def load_config(client: str | None = None) -> dict:
     cfg["corpus_dir"] = str(cdir / cfg.get("corpus_dir", "corpus"))
     cfg["persona_file"] = str(cdir / cfg.get("persona_file", "persona.txt"))
     cfg["catalog_file"] = str(cdir / cfg.get("catalog_file", "catalog.yaml"))
+    cfg["customers_file"] = str(cdir / cfg.get("customers_file", "customers.json"))
     cfg["analytics_log"] = str(ROOT / "data" / f"{name}.jsonl")
     cfg["built_path"] = str(ROOT / "data" / "built.json")
     cfg["_client"] = name
