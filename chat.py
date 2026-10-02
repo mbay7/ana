@@ -11,6 +11,7 @@ from src.generate import answer, recommend
 from src.loaders import load_markdown_dir
 from src.recommend import embed_catalog, load_catalog, recommend_products
 from src.retrieve import retrieve
+from src import shopify
 
 
 def build(cfg):
@@ -20,9 +21,13 @@ def build(cfg):
     vecs = embedder.embed([c.text for c in chunks])
     bm25 = BM25([c.text for c in chunks])
     persona = open(cfg["persona_file"], encoding="utf-8").read()
-    catalog = load_catalog(cfg.get("catalog_file"))
+    if shopify.configured(cfg):
+        catalog = shopify.fetch_catalog(cfg)
+        customers = shopify.fetch_customers(cfg)
+    else:
+        catalog = load_catalog(cfg.get("catalog_file"))
+        customers = load_customers(cfg.get("customers_file"))
     catalog_vecs = embed_catalog(catalog, embedder)
-    customers = load_customers(cfg.get("customers_file"))
     return chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers
 
 
