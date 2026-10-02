@@ -12,6 +12,7 @@ from src.persist import delete, load_all, save
 from src.recommend import embed_catalog, load_catalog, recommend_products
 from src.retrieve import retrieve
 from src.schema import Document
+from src.scrape import fetch_text
 
 
 @st.cache_resource
@@ -80,21 +81,30 @@ elif page == "Build":
     st.subheader("New assistant")
     with st.form("onboard"):
         name = st.text_input("Name", placeholder="e.g. Glow Guide")
+        url = st.text_input("Or paste a website URL", placeholder="https://yourstore.com")
         uploaded = st.file_uploader("Upload files (.md / .txt)", type=["md", "txt"], accept_multiple_files=True)
         content = st.text_area(
-            "Or paste content", height=200,
+            "Or paste content", height=180,
             placeholder="Paste your shipping, returns, products, FAQ, anything. A blank line between topics works best.",
         )
         voice = st.text_area("Voice (optional)", height=70, placeholder="Warm best friend, short sentences")
         submitted = st.form_submit_button("Build and save")
 
     if submitted:
-        text = content.strip()
+        parts = []
+        if url.strip():
+            scraped = fetch_text(url.strip())
+            if scraped:
+                parts.append(scraped)
+            else:
+                st.warning(f"Could not read {url.strip()}. Paste content or upload a file instead.")
+        if content.strip():
+            parts.append(content.strip())
         if uploaded:
-            files = [f.read().decode("utf-8", errors="ignore") for f in uploaded]
-            text = "\n\n".join(p for p in [text] + files if p.strip())
+            parts += [f.read().decode("utf-8", errors="ignore") for f in uploaded]
+        text = "\n\n".join(p.strip() for p in parts if p.strip())
         if not text.strip():
-            st.warning("Paste some content or upload a file first.")
+            st.warning("Give me a URL, some pasted text, or a file to work with.")
         else:
             save(built_path, name.strip() or "Assistant", text.strip(), voice.strip())
             st.success("Saved. Select it below to chat.")
