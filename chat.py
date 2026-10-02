@@ -1,6 +1,7 @@
 """CLI entrypoint — build the index and answer questions."""
 import sys
 
+from src.analytics import log
 from src.bm25 import BM25
 from src.chunking import chunk_documents
 from src.config import load_config
@@ -24,10 +25,19 @@ def ask(chunks, vecs, bm25, embedder, persona, cfg, question):
     qv = embedder.embed([question])[0]
     use_hybrid = cfg["retrieval"].get("hybrid", False)
     hits = retrieve(question, qv, vecs, chunks, bm25=bm25 if use_hybrid else None, top_k=cfg["retrieval"]["top_k"])
+    top_conf = hits[0][1] if hits else 0.0
+    threshold = cfg["retrieval"].get("threshold")
+    log(
+        cfg["analytics_log"],
+        question=question,
+        answered=(top_conf >= (threshold or 0.0)),
+        source=(hits[0][0].source if hits else None),
+        confidence=top_conf,
+    )
     return answer(
         question, hits, persona, cfg["model"]["generate"],
         max_tokens=cfg.get("max_tokens", 250),
-        threshold=cfg["retrieval"].get("threshold"),
+        threshold=threshold,
     )
 
 

@@ -23,6 +23,7 @@ def load_config(client: str | None = None) -> dict:
     # resolve content paths against the client folder (absolute, cwd-independent)
     cfg["corpus_dir"] = str(cdir / cfg.get("corpus_dir", "corpus"))
     cfg["persona_file"] = str(cdir / cfg.get("persona_file", "persona.txt"))
+    cfg["analytics_log"] = str(ROOT / "data" / f"{name}.jsonl")
     cfg["_client"] = name
     cfg["_client_dir"] = str(cdir)
     return cfg

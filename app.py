@@ -1,6 +1,7 @@
 """Streamlit chat UI (repo-root entry; runs on Streamlit Community Cloud or locally)."""
 import streamlit as st
 
+from src.analytics import log, summarize
 from src.bm25 import BM25
 from src.chunking import chunk_documents
 from src.config import load_config
@@ -28,34 +29,73 @@ ui = cfg.get("ui", {})
 api_key = st.secrets.get("OPENROUTER_API_KEY", None) if hasattr(st, "secrets") else None
 
 st.set_page_config(page_title=ui.get("title", "Ask"), page_icon=ui.get("emoji", "🤍"))
-st.title(ui.get("title", "Ask"))
-st.caption(ui.get("subtitle", ""))
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# right-to-left layout for Arabic clients
+if cfg.get("language") == "ar":
+    st.markdown(
+        '<style>div[data-testid="stAppViewContainer"] {direction: rtl; text-align: right;}</style>',
+        unsafe_allow_html=True,
+    )
 
-for m in st.session_state.messages:
-    with st.chat_message(m["role"]):
-        st.markdown(m["content"])
+page = st.sidebar.radio("View", ["Chat", "Usage"])
 
-if prompt := st.chat_input(ui.get("placeholder", "Ask…")):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-    with st.chat_message("assistant"):
-        with st.spinner("…"):
-            qv = embedder.embed([prompt])[0]
-            use_hybrid = cfg["retrieval"].get("hybrid", False)
-            hits = retrieve(
-                prompt, qv, vecs, chunks,
-                bm25=bm25 if use_hybrid else None,
-                top_k=cfg["retrieval"]["top_k"],
-            )
-            a = answer(
-                prompt, hits, persona, cfg["model"]["generate"],
-                max_tokens=cfg.get("max_tokens", 250),
-                threshold=cfg["retrieval"].get("threshold"),
-                api_key=api_key,
-            )
-        st.markdown(a)
-    st.session_state.messages.append({"role": "assistant", "content": a})
+if page == "Usage":
+    m = summarize(cfg["analytics_log"])
+    st.title("Usage")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Questions", m["total"])
+    c2.metric("Answered", m["answered"])
+    c3.metric("Deflected", m["deflected"])
+    st.caption(f"Deflection rate: {m['deflection_rate']:.0%}")
+    if m["top_sources"]:
+        st.subheader("Top sources")
+        for src, n in m["top_sources"]:
+            st.text(f"{src}  ·  {n}")
+    if m["recent"]:
+        st.subheader("Recent")
+        for e in reversed(m["recent"]):
+            flag = "answered" if e.get("answered") else "deflected"
+            st.text(f"[{flag}]  {e.get('question', '')}")
+else:
+    st.title(ui.get("title", "Ask"))
+    st.caption(ui.get("subtitle", ""))
+
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    for m_ in st.session_state.messages:
+        with st.chat_message(m_["role"]):
+            st.markdown(m_["content"])
+
+    if prompt := st.chat_input(ui.get("placeholder", "Ask…")):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        with st.chat_message("assistant"):
+            with st.spinner("…"):
+                qv = embedder.embed([prompt])[0]
+                use_hybrid = cfg["retrieval"].get("hybrid", False)
+                hits = retrieve(
+                    prompt, qv, vecs, chunks,
+                    bm25=bm25 if use_hybrid else None,
+                    top_k=cfg["retrieval"]["top_k"],
+                )
+                top_conf = hits[0][1] if hits else 0.0
+                top_source = hits[0][0].source if hits else None
+                threshold = cfg["retrieval"].get("threshold")
+                answered = top_conf >= (threshold or 0.0)
+                a = answer(
+                    prompt, hits, persona, cfg["model"]["generate"],
+                    max_tokens=cfg.get("max_tokens", 250),
+                    threshold=threshold,
+                    api_key=api_key,
+                )
+                log(
+                    cfg["analytics_log"],
+                    question=prompt,
+                    answered=answered,
+                    source=top_source,
+                    confidence=top_conf,
+                )
+            st.markdown(a)
+        st.session_state.messages.append({"role": "assistant", "content": a})

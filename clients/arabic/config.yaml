@@ -1,0 +1,27 @@
+# Arabic demo client — shows the engine answering in Arabic with a multilingual
+# embedding model and right-to-left UI. Fictional store (demo content only).
+name: "متجر تجريبي"
+language: ar
+
+model:
+  embed: paraphrase-multilingual-MiniLM-L12-v2   # multilingual: Arabic + English
+  generate: deepseek/deepseek-v4-flash
+
+retrieval:
+  top_k: 4
+  threshold: 0.32
+  hybrid: false
+
+corpus_dir: corpus
+persona_file: persona.txt
+max_tokens: 250
+
+ui:
+  title: "مساعد المتجر"
+  subtitle: "اسأل عن منتجاتنا وسياساتنا"
+  emoji: "🛍️"
+  placeholder: "اكتب سؤالك هنا…"
+
+channels:
+  - web
+  - whatsapp
