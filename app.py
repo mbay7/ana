@@ -8,6 +8,7 @@ from src.config import load_config
 from src.embed import Embedder
 from src.generate import answer, recommend
 from src.loaders import load_markdown_dir
+from src.persist import delete, load_all, save
 from src.recommend import embed_catalog, load_catalog, recommend_products
 from src.retrieve import retrieve
 from src.schema import Document
@@ -71,40 +72,62 @@ if page == "Usage":
 
 elif page == "Build":
     st.title("Build your assistant")
-    st.caption("Paste your content and get a voiced assistant in about a minute, no code.")
+    st.caption("Paste content or upload files, give it a voice, then save and use it.")
 
+    built_path = cfg.get("built_path")
+    saved = load_all(built_path)
+
+    st.subheader("New assistant")
     with st.form("onboard"):
-        name = st.text_input("Assistant name", placeholder="e.g. Glow Guide")
+        name = st.text_input("Name", placeholder="e.g. Glow Guide")
+        uploaded = st.file_uploader("Upload files (.md / .txt)", type=["md", "txt"], accept_multiple_files=True)
         content = st.text_area(
-            "Paste your content", height=260,
-            placeholder="Paste your shipping policy, returns, products, FAQ, anything. A blank line between topics works best.",
+            "Or paste content", height=200,
+            placeholder="Paste your shipping, returns, products, FAQ, anything. A blank line between topics works best.",
         )
-        voice = st.text_area("Voice (optional)", height=80, placeholder="Warm best friend, short sentences")
-        submitted = st.form_submit_button("Build assistant")
+        voice = st.text_area("Voice (optional)", height=70, placeholder="Warm best friend, short sentences")
+        submitted = st.form_submit_button("Build and save")
 
     if submitted:
-        if not content.strip():
-            st.warning("Paste some content first.")
+        text = content.strip()
+        if uploaded:
+            files = [f.read().decode("utf-8", errors="ignore") for f in uploaded]
+            text = "\n\n".join(p for p in [text] + files if p.strip())
+        if not text.strip():
+            st.warning("Paste some content or upload a file first.")
         else:
-            doc = Document(id="custom", text=content, source="your-content")
+            save(built_path, name.strip() or "Assistant", text.strip(), voice.strip())
+            st.success("Saved. Select it below to chat.")
+            st.rerun()
+
+    if saved:
+        st.subheader("Your assistants")
+        sel = st.selectbox("Select an assistant", range(len(saved)), format_func=lambda i: saved[i]["name"])
+        a = saved[sel]
+        ckey = (sel, a["content"])
+        if st.session_state.get("built_key") != ckey:
+            doc = Document(id="custom", text=a["content"], source="your-content")
             bchunks = chunk_documents([doc])
             bvecs = embedder.embed([c.text for c in bchunks])
+            st.session_state.built_key = ckey
             st.session_state.built = {
-                "name": name.strip() or "Assistant",
+                "name": a["name"],
                 "chunks": bchunks,
                 "vecs": bvecs,
-                "persona": make_persona(name.strip(), voice.strip()),
+                "persona": make_persona(a["name"], a.get("voice", "")),
             }
             st.session_state.built_msgs = []
-            st.success(f"Built with {len(bchunks)} chunks. Ask it anything below.")
 
-    if "built" in st.session_state:
         b = st.session_state.built
-        st.subheader(b["name"])
+        if st.button("Delete this assistant", key=f"del_{sel}"):
+            delete(built_path, sel)
+            st.session_state.pop("built_key", None)
+            st.rerun()
+
         for m_ in st.session_state.built_msgs:
             with st.chat_message(m_["role"]):
                 st.markdown(m_["content"])
-        if q := st.chat_input("Ask your new assistant…", key="built_chat"):
+        if q := st.chat_input("Ask this assistant…", key="built_chat"):
             st.session_state.built_msgs.append({"role": "user", "content": q})
             with st.chat_message("user"):
                 st.markdown(q)
@@ -113,9 +136,11 @@ elif page == "Build":
                     qv = embedder.embed([q])[0]
                     hits = retrieve(q, qv, b["vecs"], b["chunks"], top_k=4)
                     threshold = cfg["retrieval"].get("threshold")
-                    a = answer(q, hits, b["persona"], cfg["model"]["generate"], max_tokens=250, threshold=threshold, api_key=api_key)
-                st.markdown(a)
-            st.session_state.built_msgs.append({"role": "assistant", "content": a})
+                    a_out = answer(q, hits, b["persona"], cfg["model"]["generate"], max_tokens=250, threshold=threshold, api_key=api_key)
+                st.markdown(a_out)
+            st.session_state.built_msgs.append({"role": "assistant", "content": a_out})
+    else:
+        st.info("Nothing saved yet. Build your first assistant above.")
 
 else:
     st.title(ui.get("title", "Ask"))
