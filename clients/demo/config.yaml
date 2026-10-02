@@ -13,6 +13,7 @@ retrieval:
 
 corpus_dir: corpus
 persona_file: persona.txt
+catalog_file: catalog.yaml
 max_tokens: 250
 
 ui:

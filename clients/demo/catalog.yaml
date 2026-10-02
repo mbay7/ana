@@ -1,0 +1,34 @@
+# Haven & Hearth product catalog — structured data for the recommendation demo.
+# Fictional products, safe to publish. A real client swaps this for their own
+# catalog (or live Shopify data later).
+products:
+  - id: woollen-throw
+    name: Chunky Woollen Throw
+    description: Hand-knitted wool throw, warm and textured, for sofas and beds.
+    attributes: [throw, blanket, cosy, winter, living room, bedroom]
+    price: "£45"
+    link: "https://example.com/woollen-throw"
+  - id: brass-lamp
+    name: Brass Table Lamp
+    description: Warm brass bedside lamp with a linen shade, soft glow for reading.
+    attributes: [lamp, lighting, bedroom, reading, warm light]
+    price: "£68"
+    link: "https://example.com/brass-lamp"
+  - id: oak-shelf
+    name: Solid Oak Shelf
+    description: Floating solid oak shelf, strong enough for books and plants.
+    attributes: [shelf, storage, oak, wall, books, plant]
+    price: "£39"
+    link: "https://example.com/oak-shelf"
+  - id: linen-duvet
+    name: Washed Linen Duvet Set
+    description: Breathable washed linen duvet cover and pillowcases, soft and cool.
+    attributes: [bedding, duvet, linen, bedroom, cool, soft]
+    price: "£120"
+    link: "https://example.com/linen-duvet"
+  - id: ceramic-vase
+    name: Speckled Ceramic Vase
+    description: Hand-thrown stoneware vase in a warm speckled glaze.
+    attributes: [vase, decor, ceramic, table, flowers, gift]
+    price: "£32"
+    link: "https://example.com/ceramic-vase"
