@@ -2,12 +2,16 @@
 
 Phase 1: encrypted BYOK key vault + health.
 Phase 2: multi-client chat engine wired in, assistants listed from clients/.
+Phase 3: bearer-token auth so protected endpoints never go public open.
 """
 from __future__ import annotations
 
+import os
+import secrets
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from api import engine as engine_mod
@@ -16,12 +20,33 @@ from src.config import load_config
 
 CLIENTS_DIR = Path(__file__).resolve().parent.parent / "clients"
 
-app = FastAPI(title="ana API", version="0.2.0")
+app = FastAPI(title="ana API", version="0.3.0")
+
+# The dashboard is a static page on another origin; allow it to call this API.
+# Endpoints are bearer-token protected (see require_auth), so CORS is not auth.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+def require_auth(authorization: str | None = Header(default=None)) -> None:
+    """Bearer-token guard. Open only when ANA_API_TOKEN is unset (local dev)."""
+    expected = os.environ.get("ANA_API_TOKEN")
+    if not expected:
+        return
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="missing token")
+    supplied = authorization.removeprefix("Bearer ")
+    if not secrets.compare_digest(supplied, expected):
+        raise HTTPException(status_code=401, detail="invalid token")
 
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "service": "ana", "version": "0.2.0"}
+    return {"status": "ok", "service": "ana", "version": "0.3.0"}
 
 
 class SecretIn(BaseModel):
@@ -29,19 +54,19 @@ class SecretIn(BaseModel):
     secret: str
 
 
-@app.get("/vault/keys")
+@app.get("/vault/keys", dependencies=[Depends(require_auth)])
 def list_keys() -> dict:
     # names only — secret values are never exposed by listing
     return {"keys": vault.list_names()}
 
 
-@app.post("/vault/keys")
+@app.post("/vault/keys", dependencies=[Depends(require_auth)])
 def put_key(body: SecretIn) -> dict:
     vault.put(body.name, body.secret)
     return {"saved": body.name}
 
 
-@app.delete("/vault/keys/{name}")
+@app.delete("/vault/keys/{name}", dependencies=[Depends(require_auth)])
 def delete_key(name: str) -> dict:
     if not vault.delete(name):
         raise HTTPException(status_code=404, detail="key not found")
@@ -63,7 +88,7 @@ def _list_clients() -> list[dict]:
     return out
 
 
-@app.get("/assistants")
+@app.get("/assistants", dependencies=[Depends(require_auth)])
 def list_assistants() -> dict:
     return {"assistants": _list_clients()}
 
@@ -72,7 +97,7 @@ class ChatIn(BaseModel):
     question: str
 
 
-@app.post("/assistants/{client}/chat")
+@app.post("/assistants/{client}/chat", dependencies=[Depends(require_auth)])
 def chat(client: str, body: ChatIn) -> dict:
     if not (CLIENTS_DIR / client / "config.yaml").exists():
         raise HTTPException(status_code=404, detail="assistant not found")
