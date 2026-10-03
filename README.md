@@ -1,4 +1,4 @@
-# Noor — a reusable retrieval-augmented chat assistant
+# Ana — a reusable retrieval-augmented chat assistant
 
 A small, clean engine that answers customer questions from a brand's own
 documents, in a configurable voice. One engine, many clients: each client is a
@@ -15,7 +15,7 @@ self-contained folder, and the core does not change between them.
 ## Structure
 
 ```
-noor/
+ana/
   app.py                 # Streamlit chat UI (repo-root entry)
   chat.py                # CLI: ask questions from the terminal
   clients/
@@ -81,7 +81,7 @@ persona, and corpus. No core code changes. See `clients/README.md`.
 
 ## Licence
 
-Noor is source-available under the PolyForm Noncommercial License 1.0.0 (see `LICENSE`).
+Ana is source-available under the PolyForm Noncommercial License 1.0.0 (see `LICENSE`).
 You may read, fork, and run this code to learn from it for personal, research, educational,
 and other noncommercial purposes. You may not use it commercially or offer it as a product
 or service without written permission from the author.

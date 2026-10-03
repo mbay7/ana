@@ -1,6 +1,6 @@
 # Roadmap
 
-Noor, a reusable multi-client RAG assistant for brand support and shopping. Live demo at
+Ana, a reusable multi-client RAG assistant for brand support and shopping. Live demo at
 https://shopassist-agent.streamlit.app — this repo is the engine behind it.
 
 ## Shipped

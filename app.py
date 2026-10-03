@@ -49,7 +49,7 @@ ui = cfg.get("ui", {})
 # On Streamlit Cloud the OpenAI-compatible key is set as a dashboard secret.
 api_key = st.secrets.get("OPENROUTER_API_KEY", None) if hasattr(st, "secrets") else None
 
-st.set_page_config(page_title=ui.get("title", "Noor"), page_icon=ui.get("emoji", "🤍"))
+st.set_page_config(page_title=ui.get("title", "Ana"), page_icon=ui.get("emoji", "🤍"))
 
 # right-to-left layout for Arabic clients
 if cfg.get("language") == "ar":
@@ -160,7 +160,7 @@ elif page == "Build":
         st.info("Nothing saved yet. Build your first assistant above.")
 
 else:
-    st.title(ui.get("title", "Noor"))
+    st.title(ui.get("title", "Ana"))
     st.caption(ui.get("subtitle", ""))
 
     if "messages" not in st.session_state:
