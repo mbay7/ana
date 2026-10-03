@@ -78,3 +78,14 @@ persona, and corpus. No core code changes. See `clients/README.md`.
 - Answers are grounded in the provided context only, and the persona is told
   to say it does not know rather than invent. The abstention threshold makes
   that a hard guarantee instead of a hope.
+
+## Licence
+
+Noor is source-available under the PolyForm Noncommercial License 1.0.0 (see `LICENSE`).
+You may read, fork, and run this code to learn from it for personal, research, educational,
+and other noncommercial purposes. You may not use it commercially or offer it as a product
+or service without written permission from the author.
+
+Real client data never appears in this repository. `clients/demo/` is a fictional store. A
+client's confidential corpus, persona, and catalogue live outside this repo and are never
+committed.
