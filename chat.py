@@ -31,7 +31,7 @@ def build(cfg):
     return chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers
 
 
-def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question):
+def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key=None):
     qv = embedder.embed([question])[0]
     model = cfg["model"]["generate"]
     max_tokens = cfg.get("max_tokens", 250)
@@ -44,7 +44,7 @@ def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers,
             cfg["analytics_log"], question=question, answered=True,
             source="catalog:" + prods[0].get("name", ""), confidence=matches[0][1],
         )
-        return recommend(question, prods, persona, model, max_tokens=max_tokens, customer_ctx=cust_ctx)
+        return recommend(question, prods, persona, model, max_tokens=max_tokens, customer_ctx=cust_ctx, api_key=api_key)
     use_hybrid = cfg["retrieval"].get("hybrid", False)
     hits = retrieve(question, qv, vecs, chunks, bm25=bm25 if use_hybrid else None, top_k=cfg["retrieval"]["top_k"])
     top_conf = hits[0][1] if hits else 0.0
@@ -54,7 +54,7 @@ def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers,
         answered=(top_conf >= (threshold or 0.0)),
         source=(hits[0][0].source if hits else None), confidence=top_conf,
     )
-    return answer(question, hits, persona, model, max_tokens=max_tokens, threshold=threshold, customer_ctx=cust_ctx)
+    return answer(question, hits, persona, model, max_tokens=max_tokens, threshold=threshold, customer_ctx=cust_ctx, api_key=api_key)
 
 
 def main():
