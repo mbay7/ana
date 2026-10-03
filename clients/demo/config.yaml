@@ -1,5 +1,5 @@
 # Haven & Hearth — fictional UK homeware retailer (the demo/example client).
-name: "Haven & Hearth"
+name: "Noor"
 language: en
 
 model:
@@ -17,9 +17,9 @@ catalog_file: catalog.yaml
 max_tokens: 250
 
 ui:
-  title: "Store Assistant"
-  subtitle: "ask about our products and policies"
-  emoji: "🛍️"
+  title: "Noor"
+  subtitle: "Haven & Hearth's shopping assistant"
+  emoji: "✨"
   placeholder: "Ask anything…"
 
 # Where this assistant can be deployed. `web` is wired (Streamlit); whatsapp /

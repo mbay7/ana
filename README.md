@@ -1,4 +1,4 @@
-# Shopassist — a reusable retrieval-augmented chat assistant
+# Noor — a reusable retrieval-augmented chat assistant
 
 A small, clean engine that answers customer questions from a brand's own
 documents, in a configurable voice. One engine, many clients: each client is a
@@ -15,7 +15,7 @@ self-contained folder, and the core does not change between them.
 ## Structure
 
 ```
-shopassist/
+noor/
   app.py                 # Streamlit chat UI (repo-root entry)
   chat.py                # CLI: ask questions from the terminal
   clients/
