@@ -47,7 +47,11 @@ def make_persona(name, voice):
 cfg, chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers = build()
 ui = cfg.get("ui", {})
 # On Streamlit Cloud the OpenAI-compatible key is set as a dashboard secret.
-api_key = st.secrets.get("OPENROUTER_API_KEY", None) if hasattr(st, "secrets") else None
+try:
+    api_key = st.secrets.get("OPENROUTER_API_KEY", None)
+except Exception:
+    # No secrets.toml on self-hosted runs; the key is read from OPENROUTER_API_KEY env by the engine.
+    api_key = None
 
 st.set_page_config(page_title=ui.get("title", "Ana"), page_icon=ui.get("emoji", "🤍"))
 
