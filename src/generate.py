@@ -91,6 +91,8 @@ _GREETING_WORDS = {"hi", "hello", "hey", "hiya", "howdy", "salam", "salaam", "م
 _GREETING_PATTERNS = (
     "how can you help", "how can i help", "what can you do", "what do you do",
     "who are you", "what are you", "what can i ask",
+    "how are you", "how r u", "how're you", "how are things", "how are you doing",
+    "how is it going", "hows it going", "how's it going", "whats up", "what's up",
 )
 
 
@@ -141,7 +143,27 @@ def is_farewell(text: str) -> bool:
 _SMALLTALK_PROMPTS = {
     "thanks": "The shopper just thanked you. Reply warmly and briefly in your voice, and invite them to ask anything else (products, recommendations, delivery, returns).",
     "farewell": "The shopper just said goodbye. Reply with a warm, brief farewell in your voice, and invite them back anytime.",
+    "vague": "The shopper asked to see products or browse without being specific. In your voice, warmly ask what kind of thing they are looking for, name one or two examples of what the store offers, and offer to help them find it.",
 }
+
+_VAGUE_PRODUCT_PATTERNS = (
+    "find product", "find a product", "find me", "find something",
+    "show product", "show me product", "show me products", "show products",
+    "browse product", "browse products", "browse",
+    "what products do you", "what do you sell", "what do you have",
+    "what do you stock", "what products are there", "list product", "list products",
+    "see products", "see your products",
+)
+
+
+def is_vague_product_request(text: str) -> bool:
+    """Detect a request to browse products without any specific thing named."""
+    t = text.strip().lower().rstrip(".!?؟ ")
+    if not t or len(t) > 40:
+        return False
+    if t in ("products", "product", "catalog", "catalogue"):
+        return True
+    return any(t.startswith(p) for p in _VAGUE_PRODUCT_PATTERNS)
 
 
 
