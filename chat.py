@@ -7,7 +7,7 @@ from src.chunking import chunk_documents
 from src.config import load_config
 from src.customers import identify, load_customers, profile_prompt
 from src.embed import Embedder
-from src.generate import answer, greet, is_farewell, is_greeting, is_thanks, is_vague_product_request, recommend, small_talk_reply
+from src.generate import answer, greet, is_chitchat, is_farewell, is_greeting, is_thanks, is_vague_product_request, recommend, small_talk_reply
 from src.loaders import load_markdown_dir
 from src.recommend import embed_catalog, load_catalog, recommend_products
 from src.retrieve import retrieve
@@ -59,6 +59,12 @@ def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers,
         if out is None:
             log(log_path, question=question, answered=False, source="vague", confidence=None, error="generation failed")
             return "I can help you find something! What kind of product are you looking for?"
+        return out
+    if is_chitchat(question):
+        out = small_talk_reply("chitchat", persona, model, api_key=api_key)
+        if out is None:
+            log(log_path, question=question, answered=False, source="chitchat", confidence=None, error="generation failed")
+            return "Sounds good! Anything I can help you find?"
         return out
     customer = identify(question, customers)
     cust_ctx = profile_prompt(customer) if customer else None

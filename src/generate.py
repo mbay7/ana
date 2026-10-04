@@ -87,12 +87,14 @@ def recommend(question, products, persona, model, max_tokens=250, api_key=None, 
     return out
 
 
-_GREETING_WORDS = {"hi", "hello", "hey", "hiya", "howdy", "salam", "salaam", "مرحبا", "اهلا", "هاي"}
+_GREETING_WORDS = {"hi", "hello", "hey", "hiya", "howdy", "salam", "salaam", "مرحبا", "اهلا", "هاي", "yo", "morning", "afternoon", "evening", "welcome"}
 _GREETING_PATTERNS = (
     "how can you help", "how can i help", "what can you do", "what do you do",
     "who are you", "what are you", "what can i ask",
     "how are you", "how r u", "how're you", "how are things", "how are you doing",
     "how is it going", "hows it going", "how's it going", "whats up", "what's up",
+    "good morning", "good afternoon", "good evening",
+    "what is your name", "whats your name", "what's your name", "your name",
 )
 
 
@@ -111,9 +113,9 @@ def greet(question, persona, model, max_tokens=140, api_key=None) -> str | None:
     """Warm, persona-voiced greeting that introduces what the assistant can do."""
     system = (
         persona
-        + "\n\nThe shopper just greeted you or asked what you can do. Greet them back warmly, "
-        "introduce yourself as this store's assistant in your natural voice, and say in one or "
-        "two short lines what you can help with: finding and recommending products, delivery, and returns."
+        + "\n\nThe shopper just greeted you or asked what you can do. Greet them back warmly, like a friend, "
+        "and in one or two short lines let them know you can help them find and recommend products and "
+        "answer delivery and returns questions. Stay natural and human."
     )
     out = _complete(
         [{"role": "system", "content": system}, {"role": "user", "content": question}],
@@ -144,7 +146,29 @@ _SMALLTALK_PROMPTS = {
     "thanks": "The shopper just thanked you. Reply warmly and briefly in your voice, and invite them to ask anything else (products, recommendations, delivery, returns).",
     "farewell": "The shopper just said goodbye. Reply with a warm, brief farewell in your voice, and invite them back anytime.",
     "vague": "The shopper asked to see products or browse without being specific. In your voice, warmly ask what kind of thing they are looking for, name one or two examples of what the store offers, and offer to help them find it.",
+    "chitchat": "The shopper made a light, casual remark or acknowledgment, not a product question. Reply briefly in your voice, warm and human. Keep it short, one or two lines, and gently nudge back toward helping them find something.",
 }
+
+_CHITCHAT_ACKS = {
+    "nice", "cool", "great", "awesome", "haha", "lol", "ok", "okay", "sure",
+    "yes", "no", "maybe", "alright", "yep", "nope", "idk", "not sure", "hmm",
+    "hmmm", "bored", "funny", "joke", "wow", "interesting",
+}
+_CHITCHAT_PHRASES = (
+    "tell me a joke", "make me laugh", "i'm bored", "im bored", "i am bored",
+    "i like this", "i love this", "love it", "love this", "this is nice",
+    "i don't know", "i dont know",
+)
+
+
+def is_chitchat(text: str) -> bool:
+    """Detect light casual chit-chat that should get a brief warm reply, not an abstain."""
+    t = text.strip().lower().rstrip(".!?؟ ")
+    if not t or len(t) > 40:
+        return False
+    if t in _CHITCHAT_ACKS:
+        return True
+    return any(t.startswith(p) for p in _CHITCHAT_PHRASES)
 
 _VAGUE_PRODUCT_PATTERNS = (
     "find product", "find a product", "find me", "find something",
