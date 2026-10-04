@@ -7,7 +7,7 @@ from src.chunking import chunk_documents
 from src.config import load_config
 from src.customers import identify, load_customers, profile_prompt
 from src.embed import Embedder
-from src.generate import answer, greet, is_chitchat, is_farewell, is_greeting, is_thanks, is_vague_product_request, recommend, small_talk_reply
+from src.generate import answer, checkout, greet, is_buy_intent, is_chitchat, is_farewell, is_greeting, is_thanks, is_vague_product_request, recommend, small_talk_reply
 from src.loaders import load_markdown_dir
 from src.recommend import embed_catalog, load_catalog, recommend_products
 from src.retrieve import retrieve
@@ -69,6 +69,21 @@ def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers,
     customer = identify(question, customers)
     cust_ctx = profile_prompt(customer) if customer else None
     matches = recommend_products(qv, catalog, catalog_vecs)
+    if is_buy_intent(question):
+        if matches:
+            prod = matches[0][0]
+            out = checkout(question, prod, persona, model, api_key=api_key, customer_ctx=cust_ctx)
+            log(
+                log_path, question=question, answered=(out is not None),
+                source="checkout:" + prod.get("name", ""), confidence=matches[0][1],
+                error=(None if out is not None else "generation failed"),
+            )
+            return out if out is not None else "Sorry, I couldn't pull that up just now. Try again in a moment."
+        out = small_talk_reply("buy_which", persona, model, api_key=api_key)
+        if out is None:
+            log(log_path, question=question, answered=False, source="buy_which", confidence=None, error="generation failed")
+            return "Which one were you after? Tell me the name and I'll sort you out."
+        return out
     if matches:
         prods = [p for p, _ in matches]
         out = recommend(question, prods, persona, model, max_tokens=max_tokens, customer_ctx=cust_ctx, api_key=api_key)

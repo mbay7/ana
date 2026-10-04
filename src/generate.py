@@ -147,6 +147,7 @@ _SMALLTALK_PROMPTS = {
     "farewell": "The shopper just said goodbye. Reply with a warm, brief farewell in your voice, and invite them back anytime.",
     "vague": "The shopper asked to see products or browse without being specific. In your voice, warmly ask what kind of thing they are looking for, name one or two examples of what the store offers, and offer to help them find it.",
     "chitchat": "The shopper made a light, casual remark or acknowledgment, not a product question. Reply briefly in your voice, warm and human. Keep it short, one or two lines, and gently nudge back toward helping them find something.",
+    "buy_which": "The shopper wants to buy something but did not say which product. Warmly ask which one they mean so you can help them check out.",
 }
 
 _CHITCHAT_ACKS = {
@@ -178,7 +179,7 @@ _VAGUE_PRODUCT_PATTERNS = (
     "what do you stock", "what products are there", "list product", "list products",
     "see products", "see your products",
     "tell me more", "what else", "what else do you have", "what are your products",
-    "what do you offer", "what do you recommend", "recommend something", "im not sure what",
+    "what do you offer", "im not sure what",
 )
 
 
@@ -192,11 +193,55 @@ def is_vague_product_request(text: str) -> bool:
     return any(t.startswith(p) for p in _VAGUE_PRODUCT_PATTERNS)
 
 
+_BUY_PHRASES = (
+    "buy", "i'll take", "ill take", "i want to buy", "i wanna buy", "i want this", "i want it",
+    "add to cart", "add it to cart", "add it", "checkout", "check out",
+    "how do i buy", "where do i buy", "where can i buy",
+    "how do i order", "place an order", "i want to order", "i'll get", "ill get",
+    "purchase", "i need this", "i need it", "take it", "get it for me",
+)
+
+
+def is_buy_intent(text: str) -> bool:
+    """Detect a shopper ready to buy or check out."""
+    t = text.strip().lower().rstrip(".!?؟ ")
+    if not t or len(t) > 60:
+        return False
+    return any(t.startswith(p) for p in _BUY_PHRASES)
+
+
 
 def small_talk_reply(kind, persona, model, max_tokens=80, api_key=None):
     system = persona + "\n\n" + _SMALLTALK_PROMPTS[kind]
     out = _complete(
         [{"role": "system", "content": system}, {"role": "user", "content": kind}],
+        model, max_tokens, api_key,
+    )
+    return out
+
+
+def checkout(question, product, persona, model, max_tokens=150, api_key=None, customer_ctx=None):
+    """Handle a buy/checkout intent: present the link, or defer pre-launch when no link exists."""
+    name = product.get("name", "")
+    price = product.get("price", "?")
+    link = product.get("link", "")
+    base = persona if not customer_ctx else persona + "\n\n" + customer_ctx
+    if link:
+        system = (
+            base
+            + "\n\nThe shopper wants to buy a product. Confirm warmly, then give them the link to check out. "
+            "Short and encouraging. Give the name, the price, and the link."
+        )
+        user = f"Product: {name} ({price})\nCheckout link: {link}\nShopper: {question}"
+    else:
+        system = (
+            base
+            + "\n\nThe shopper wants to buy a product but no link is available. Warmly say the brand is launching "
+            "soon and full details are coming. Do not invent a link or a price."
+        )
+        user = f"Product: {name} ({price})\nNo link available.\nShopper: {question}"
+    out = _complete(
+        [{"role": "system", "content": system}, {"role": "user", "content": user}],
         model, max_tokens, api_key,
     )
     return out
