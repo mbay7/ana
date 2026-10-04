@@ -109,3 +109,40 @@ def greet(question, persona, model, max_tokens=140, api_key=None) -> str:
     return out if out is not None else (
         "Hi there! I can help you find products, check delivery, and sort returns. What are you looking for?"
     )
+
+
+_THANKS = {"thanks", "thank", "thx", "cheers", "شكرا", "شكراً", "مشكور"}
+_FAREWELL = {"bye", "goodbye", "farewell", "باى", "باي", "مع السلامة", "وداعا", "الى اللقاء", "الوداع"}
+
+
+def is_thanks(text: str) -> bool:
+    t = text.strip().lower().rstrip(".!?؟ ")
+    if not t or len(t) > 40:
+        return False
+    return t.startswith(("thank you", "thanks", "thank")) or any(w in _THANKS for w in t.split())
+
+
+def is_farewell(text: str) -> bool:
+    t = text.strip().lower().rstrip(".!?؟ ")
+    if not t or len(t) > 40:
+        return False
+    return t in _FAREWELL or any(t.startswith(w) for w in _FAREWELL) or t.startswith("see you")
+
+
+_SMALLTALK_PROMPTS = {
+    "thanks": "The shopper just thanked you. Reply warmly and briefly in your voice, and invite them to ask anything else (products, recommendations, delivery, returns).",
+    "farewell": "The shopper just said goodbye. Reply with a warm, brief farewell in your voice, and invite them back anytime.",
+}
+_SMALLTALK_FALLBACKS = {
+    "thanks": "You're welcome! Anything else I can help you find?",
+    "farewell": "Thanks for stopping by, see you next time!",
+}
+
+
+def small_talk_reply(kind, persona, model, max_tokens=80, api_key=None):
+    system = persona + "\n\n" + _SMALLTALK_PROMPTS[kind]
+    out = _complete(
+        [{"role": "system", "content": system}, {"role": "user", "content": kind}],
+        model, max_tokens, api_key,
+    )
+    return out if out is not None else _SMALLTALK_FALLBACKS[kind]
