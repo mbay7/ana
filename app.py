@@ -15,6 +15,7 @@ from src.retrieve import retrieve
 from src.schema import Document
 from src.scrape import fetch_text
 from src import shopify
+import chat  # shared ask(): greeting/small-talk + retrieval + failure logging
 
 
 @st.cache_resource
@@ -180,37 +181,9 @@ else:
             st.markdown(prompt)
         with st.chat_message("assistant"):
             with st.spinner("…"):
-                qv = embedder.embed([prompt])[0]
-                model = cfg["model"]["generate"]
-                max_tokens = cfg.get("max_tokens", 250)
-                customer = identify(prompt, customers)
-                cust_ctx = profile_prompt(customer) if customer else None
-                matches = recommend_products(qv, catalog, catalog_vecs)
-                if matches:
-                    prods = [p for p, _ in matches]
-                    a = recommend(prompt, prods, persona, model, max_tokens=max_tokens, api_key=api_key, customer_ctx=cust_ctx)
-                    log(
-                        cfg["analytics_log"], question=prompt, answered=True,
-                        source="catalog:" + prods[0].get("name", ""), confidence=matches[0][1],
-                    )
-                else:
-                    use_hybrid = cfg["retrieval"].get("hybrid", False)
-                    hits = retrieve(
-                        prompt, qv, vecs, chunks,
-                        bm25=bm25 if use_hybrid else None,
-                        top_k=cfg["retrieval"]["top_k"],
-                    )
-                    top_conf = hits[0][1] if hits else 0.0
-                    top_source = hits[0][0].source if hits else None
-                    threshold = cfg["retrieval"].get("threshold")
-                    answered = top_conf >= (threshold or 0.0)
-                    a = answer(
-                        prompt, hits, persona, model,
-                        max_tokens=max_tokens, threshold=threshold, api_key=api_key, customer_ctx=cust_ctx,
-                    )
-                    log(
-                        cfg["analytics_log"], question=prompt, answered=answered,
-                        source=top_source, confidence=top_conf,
-                    )
+                a = chat.ask(
+                    chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs,
+                    customers, cfg, prompt, api_key=api_key,
+                )
             st.markdown(a)
         st.session_state.messages.append({"role": "assistant", "content": a})
