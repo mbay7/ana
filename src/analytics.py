@@ -11,7 +11,7 @@ from collections import Counter
 from pathlib import Path
 
 
-def log(path, *, question, answered, source, confidence):
+def log(path, *, question, answered, source, confidence, error=None):
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     row = {
@@ -21,8 +21,29 @@ def log(path, *, question, answered, source, confidence):
         "source": source,
         "confidence": round(confidence, 4) if confidence is not None else None,
     }
+    if error:
+        row["error"] = error
     with p.open("a", encoding="utf-8") as f:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def recent_failures(path, limit=20):
+    """Return the most recent rows that recorded an error, for a failure alert."""
+    p = Path(path)
+    if not p.exists():
+        return []
+    fails = []
+    for line in p.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            e = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if e.get("error"):
+            fails.append(e)
+    return fails[-limit:]
 
 
 def summarize(path, limit_recent=10):

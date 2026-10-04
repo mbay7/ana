@@ -57,7 +57,7 @@ def answer(question, hits, persona, model, max_tokens=250, threshold=None, absta
         ],
         model, max_tokens, api_key,
     )
-    return out if out is not None else "[no API key configured]"
+    return out
 
 
 def recommend(question, products, persona, model, max_tokens=250, api_key=None, customer_ctx=None):
@@ -84,7 +84,7 @@ def recommend(question, products, persona, model, max_tokens=250, api_key=None, 
         ],
         model, max_tokens, api_key,
     )
-    return out if out is not None else "[no API key configured]"
+    return out
 
 
 _GREETING_WORDS = {"hi", "hello", "hey", "hiya", "howdy", "salam", "salaam", "مرحبا", "اهلا", "هاي"}
@@ -99,13 +99,13 @@ def is_greeting(text: str) -> bool:
     t = text.strip().lower().rstrip(".!?؟ ")
     if not t or len(t) > 60:
         return False
-    first = t.split()[0].strip(",.!?؟ ") if t.split() else ""
+    first = t.split()[0].strip(",،.۔!?؟;؛:： ") if t.split() else ""
     if first in _GREETING_WORDS:
         return True
     return any(t.startswith(p) for p in _GREETING_PATTERNS)
 
 
-def greet(question, persona, model, max_tokens=140, api_key=None) -> str:
+def greet(question, persona, model, max_tokens=140, api_key=None) -> str | None:
     """Warm, persona-voiced greeting that introduces what the assistant can do."""
     system = (
         persona
@@ -117,9 +117,7 @@ def greet(question, persona, model, max_tokens=140, api_key=None) -> str:
         [{"role": "system", "content": system}, {"role": "user", "content": question}],
         model, max_tokens, api_key,
     )
-    return out if out is not None else (
-        "Hi there! I can help you find products, check delivery, and sort returns. What are you looking for?"
-    )
+    return out
 
 
 _THANKS = {"thanks", "thank", "thx", "cheers", "شكرا", "شكراً", "مشكور"}
@@ -144,10 +142,7 @@ _SMALLTALK_PROMPTS = {
     "thanks": "The shopper just thanked you. Reply warmly and briefly in your voice, and invite them to ask anything else (products, recommendations, delivery, returns).",
     "farewell": "The shopper just said goodbye. Reply with a warm, brief farewell in your voice, and invite them back anytime.",
 }
-_SMALLTALK_FALLBACKS = {
-    "thanks": "You're welcome! Anything else I can help you find?",
-    "farewell": "Thanks for stopping by, see you next time!",
-}
+
 
 
 def small_talk_reply(kind, persona, model, max_tokens=80, api_key=None):
@@ -156,4 +151,4 @@ def small_talk_reply(kind, persona, model, max_tokens=80, api_key=None):
         [{"role": "system", "content": system}, {"role": "user", "content": kind}],
         model, max_tokens, api_key,
     )
-    return out if out is not None else _SMALLTALK_FALLBACKS[kind]
+    return out
