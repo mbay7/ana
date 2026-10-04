@@ -1,0 +1,19 @@
+# ana — production compose. Everything bound to 127.0.0.1; only the reverse
+# proxy / Cloudflare Tunnel faces the internet. Secrets come from .env (not committed).
+services:
+  ana:
+    image: ghcr.io/mbay7/ana:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8501:8501"
+    env_file:
+      - .env
+    environment:
+      CLIENT: ${CLIENT:-demo}
+    volumes:
+      - model-cache:/app/.cache/huggingface
+      - ana-data:/app/data
+
+volumes:
+  model-cache:
+  ana-data:
