@@ -1,4 +1,6 @@
 """Streamlit chat UI (repo-root entry; runs on Streamlit Community Cloud or locally)."""
+import os
+
 import streamlit as st
 
 from src.analytics import log, summarize
@@ -63,7 +65,10 @@ if cfg.get("language") == "ar":
         unsafe_allow_html=True,
     )
 
-page = st.sidebar.radio("View", ["Chat", "Usage", "Build"])
+# Usage/Build are admin-only: they expose shopper questions and can fetch URLs
+# server-side. Hide them unless ANA_ADMIN is explicitly set in the environment.
+admin = os.environ.get("ANA_ADMIN", "").strip().lower() in ("1", "true", "yes", "on")
+page = st.sidebar.radio("View", ["Chat", "Usage", "Build"]) if admin else "Chat"
 
 if page == "Usage":
     m = summarize(cfg["analytics_log"])

@@ -25,24 +25,22 @@ def load_customers(path) -> list[dict]:
     return data if isinstance(data, list) else []
 
 
-def identify(message, customers) -> dict | None:
-    """Return the customer this message is most likely from, or None."""
-    if not customers or not message:
+def identify(message, customers, enabled=False) -> dict | None:
+    """Return the customer for a signed-in session, or None.
+
+    Identity must come from an authenticated session, never from free-form text
+    a shopper types. Until a session is wired this returns None, so no name,
+    email, or order history is injected into the prompt from chat text.
+    """
+    if not enabled or not customers or not message:
         return None
+    # Exact-email match only as a stopgap; a real deployment must pass a
+    # signed-in customer id, not infer identity from message text.
     m = _EMAIL.search(message)
     if m:
         email = m.group(0).lower()
         for c in customers:
             if (c.get("email") or "").lower() == email:
-                return c
-    low = " " + message.lower() + " "
-    for c in customers:
-        name = (c.get("name") or "").strip().lower()
-        first = name.split()[0] if name else ""
-        if not first:
-            continue
-        for pat in ("i'm ", "i am ", "im ", "this is "):
-            if (pat + first) in low:
                 return c
     return None
 

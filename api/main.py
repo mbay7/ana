@@ -33,10 +33,11 @@ app.add_middleware(
 
 
 def require_auth(authorization: str | None = Header(default=None)) -> None:
-    """Bearer-token guard. Open only when ANA_API_TOKEN is unset (local dev)."""
+    """Bearer-token guard. Fails closed: refuses when ANA_API_TOKEN is unset, so
+    the vault and chat are never silently open."""
     expected = os.environ.get("ANA_API_TOKEN")
     if not expected:
-        return
+        raise HTTPException(status_code=503, detail="ANA_API_TOKEN not configured")
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="missing token")
     supplied = authorization.removeprefix("Bearer ")

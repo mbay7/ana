@@ -66,7 +66,7 @@ def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers,
             log(log_path, question=question, answered=False, source="chitchat", confidence=None, error="generation failed")
             return "Sounds good! Anything I can help you find?"
         return out
-    customer = identify(question, customers)
+    customer = identify(question, customers, enabled=(cfg.get("customers") or {}).get("enabled", False))
     cust_ctx = profile_prompt(customer) if customer else None
     matches = recommend_products(qv, catalog, catalog_vecs)
     if is_buy_intent(question):
