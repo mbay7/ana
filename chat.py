@@ -7,7 +7,7 @@ from src.chunking import chunk_documents
 from src.config import load_config
 from src.customers import identify, load_customers, profile_prompt
 from src.embed import Embedder
-from src.generate import answer, recommend
+from src.generate import answer, greet, is_greeting, recommend
 from src.loaders import load_markdown_dir
 from src.recommend import embed_catalog, load_catalog, recommend_products
 from src.retrieve import retrieve
@@ -35,6 +35,8 @@ def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers,
     qv = embedder.embed([question])[0]
     model = cfg["model"]["generate"]
     max_tokens = cfg.get("max_tokens", 250)
+    if is_greeting(question):
+        return greet(question, persona, model, max_tokens=140, api_key=api_key)
     customer = identify(question, customers)
     cust_ctx = profile_prompt(customer) if customer else None
     matches = recommend_products(qv, catalog, catalog_vecs)

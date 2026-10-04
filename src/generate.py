@@ -74,3 +74,38 @@ def recommend(question, products, persona, model, max_tokens=250, api_key=None, 
         model, max_tokens, api_key,
     )
     return out if out is not None else "[no API key configured]"
+
+
+_GREETING_WORDS = {"hi", "hello", "hey", "hiya", "howdy", "salam", "salaam", "مرحبا", "اهلا", "هاي"}
+_GREETING_PATTERNS = (
+    "how can you help", "how can i help", "what can you do", "what do you do",
+    "who are you", "what are you", "what can i ask",
+)
+
+
+def is_greeting(text: str) -> bool:
+    """Detect greetings and 'what can you do' small-talk, before retrieval."""
+    t = text.strip().lower().rstrip(".!?؟ ")
+    if not t or len(t) > 60:
+        return False
+    first = t.split()[0] if t.split() else ""
+    if first in _GREETING_WORDS:
+        return True
+    return any(t.startswith(p) for p in _GREETING_PATTERNS)
+
+
+def greet(question, persona, model, max_tokens=140, api_key=None) -> str:
+    """Warm, persona-voiced greeting that introduces what the assistant can do."""
+    system = (
+        persona
+        + "\n\nThe shopper just greeted you or asked what you can do. Greet them back warmly, "
+        "introduce yourself as this store's assistant in your natural voice, and say in one or "
+        "two short lines what you can help with: finding and recommending products, delivery, and returns."
+    )
+    out = _complete(
+        [{"role": "system", "content": system}, {"role": "user", "content": question}],
+        model, max_tokens, api_key,
+    )
+    return out if out is not None else (
+        "Hi there! I can help you find products, check delivery, and sort returns. What are you looking for?"
+    )
