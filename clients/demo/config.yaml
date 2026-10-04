@@ -4,7 +4,7 @@ language: en
 
 model:
   embed: all-MiniLM-L6-v2
-  generate: deepseek/deepseek-v4-flash   # cheap for the demo; use a stronger model for production clients
+  generate: deepseek/deepseek-chat   # cheap and returns content directly (v4-flash now reasoning-only)
 
 retrieval:
   top_k: 4

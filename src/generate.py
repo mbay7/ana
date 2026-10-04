@@ -32,8 +32,16 @@ def _complete(messages, model, max_tokens=250, api_key=None):
         _URL, data=json.dumps(body).encode(),
         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.loads(r.read())["choices"][0]["message"]["content"].strip()
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            data = json.loads(r.read())
+    except Exception:
+        return None
+    choices = data.get("choices") or []
+    if not choices:
+        return None
+    content = (choices[0].get("message") or {}).get("content")
+    return content.strip() if isinstance(content, str) else None
 
 
 def answer(question, hits, persona, model, max_tokens=250, threshold=None, abstain=None, api_key=None, customer_ctx=None):
@@ -54,16 +62,19 @@ def answer(question, hits, persona, model, max_tokens=250, threshold=None, absta
 
 def recommend(question, products, persona, model, max_tokens=250, api_key=None, customer_ctx=None):
     """Recommend the best-matching product(s) in the persona's voice, with price + link."""
-    lines = [
-        f"- {p.get('name','')} ({p.get('price','?')}): {p.get('description','')} [link: {p.get('link','')}]"
-        for p in products
-    ]
+    lines = []
+    for p in products:
+        link = p.get("link", "")
+        line = f"- {p.get('name','')} ({p.get('price','?')}): {p.get('description','')}"
+        if link:
+            line += f" [link: {link}]"
+        lines.append(line)
     catalog = "\n".join(lines)
     base = persona if not customer_ctx else persona + "\n\n" + customer_ctx
     sys = (
         base
         + "\n\nThe shopper wants a product recommendation. Pick the best match(es) from this list, "
-        "say briefly WHY each fits their need, and give the name, price and link. Keep it warm and "
+        "say briefly WHY each fits their need, and give the name and price (and the link only if one is listed). Keep it warm and "
         "short, and do not invent anything that is not in the list."
     )
     out = _complete(
@@ -88,7 +99,7 @@ def is_greeting(text: str) -> bool:
     t = text.strip().lower().rstrip(".!?؟ ")
     if not t or len(t) > 60:
         return False
-    first = t.split()[0] if t.split() else ""
+    first = t.split()[0].strip(",.!?؟ ") if t.split() else ""
     if first in _GREETING_WORDS:
         return True
     return any(t.startswith(p) for p in _GREETING_PATTERNS)

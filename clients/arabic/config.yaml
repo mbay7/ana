@@ -5,7 +5,7 @@ language: ar
 
 model:
   embed: paraphrase-multilingual-MiniLM-L12-v2   # multilingual: Arabic + English
-  generate: deepseek/deepseek-v4-flash
+  generate: deepseek/deepseek-chat
 
 retrieval:
   top_k: 4
