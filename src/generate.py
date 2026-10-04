@@ -210,6 +210,23 @@ def is_buy_intent(text: str) -> bool:
     return any(t.startswith(p) for p in _BUY_PHRASES)
 
 
+_ROUTINE_PHRASES = (
+    "what order", "how do i layer", "layering", "layer", "am pm", "am/pm",
+    "morning and night", "day and night", "build a routine", "build my routine",
+    "my routine", "a routine", "steps", "step by step",
+)
+
+
+def is_routine_intent(text: str) -> bool:
+    """Detect a request for a skincare routine or layering order."""
+    t = text.strip().lower().rstrip(".!?؟ ")
+    if not t or len(t) > 60:
+        return False
+    if "routine" in t or "regimen" in t:
+        return True
+    return any(t.startswith(p) for p in _ROUTINE_PHRASES)
+
+
 
 def small_talk_reply(kind, persona, model, max_tokens=80, api_key=None):
     system = persona + "\n\n" + _SMALLTALK_PROMPTS[kind]
@@ -242,6 +259,28 @@ def checkout(question, product, persona, model, max_tokens=150, api_key=None, cu
         user = f"Product: {name} ({price})\nNo link available.\nShopper: {question}"
     out = _complete(
         [{"role": "system", "content": system}, {"role": "user", "content": user}],
+        model, max_tokens, api_key,
+    )
+    return out
+
+
+def routine(question, products, persona, model, max_tokens=250, api_key=None, customer_ctx=None):
+    """Build a layered AM/PM routine from products, in order, with a one-line why per step."""
+    lines = []
+    for p in products:
+        line = f"- {p.get('name','')} ({p.get('price','?')}): {p.get('description','')}"
+        lines.append(line)
+    catalog = "\n".join(lines)
+    base = persona if not customer_ctx else persona + "\n\n" + customer_ctx
+    sys = (
+        base
+        + "\n\nThe shopper wants a skincare routine. Build a clean, simple AM/PM lineup from these products, "
+        "in the right layering order (prep, hydrate, protect, then colour). For each step say in one short line "
+        "WHY it helps. If there are many products, keep to the essential steps rather than listing everything. "
+        "Only use what is in the list, and do not invent products, steps, or prices."
+    )
+    out = _complete(
+        [{"role": "system", "content": sys}, {"role": "user", "content": f"Question: {question}\n\nProducts:\n{catalog}"}],
         model, max_tokens, api_key,
     )
     return out
