@@ -6,14 +6,18 @@ the top retrieved source, and the confidence. Client-agnostic: the log path is
 resolved per-client in config.py.
 """
 import json
+import re
 import time
 from collections import Counter
 from pathlib import Path
+
+_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 
 
 def log(path, *, question, answered, source, confidence, error=None):
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
+    question = _EMAIL.sub("[email]", question or "")
     row = {
         "ts": time.time(),
         "question": question,

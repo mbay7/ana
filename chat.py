@@ -7,7 +7,7 @@ from src.chunking import chunk_documents
 from src.config import load_config
 from src.customers import identify, load_customers, profile_prompt
 from src.embed import Embedder
-from src.generate import answer, checkout, greet, is_buy_intent, is_chitchat, is_farewell, is_greeting, is_routine_intent, is_thanks, is_vague_product_request, recommend, routine, small_talk_reply
+from src.generate import answer, checkout, greet, is_buy_intent, is_chitchat, is_farewell, is_greeting, is_medical_request, is_routine_intent, is_thanks, is_vague_product_request, recommend, routine, small_talk_reply
 from src.loaders import load_markdown_dir
 from src.recommend import embed_catalog, load_catalog, recommend_products
 from src.retrieve import retrieve
@@ -41,50 +41,69 @@ def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers,
         if out is None:
             log(log_path, question=question, answered=False, source="greeting", confidence=None, error="generation failed")
             return "Hi there! I can help you find products, check delivery, and sort returns. What are you looking for?"
+        log(log_path, question=question, answered=True, source="greeting", confidence=None)
         return out
     if is_thanks(question):
-        out = small_talk_reply("thanks", persona, model, api_key=api_key)
+        out = small_talk_reply("thanks", persona, model, api_key=api_key, question=question)
         if out is None:
             log(log_path, question=question, answered=False, source="thanks", confidence=None, error="generation failed")
             return "You're welcome! Anything else I can help you find?"
+        log(log_path, question=question, answered=True, source="thanks", confidence=None)
         return out
     if is_farewell(question):
-        out = small_talk_reply("farewell", persona, model, api_key=api_key)
+        out = small_talk_reply("farewell", persona, model, api_key=api_key, question=question)
         if out is None:
             log(log_path, question=question, answered=False, source="farewell", confidence=None, error="generation failed")
             return "Thanks for stopping by, see you next time!"
+        log(log_path, question=question, answered=True, source="farewell", confidence=None)
         return out
     if is_vague_product_request(question):
-        out = small_talk_reply("vague", persona, model, api_key=api_key)
+        out = small_talk_reply("vague", persona, model, api_key=api_key, question=question)
         if out is None:
             log(log_path, question=question, answered=False, source="vague", confidence=None, error="generation failed")
             return "I can help you find something! What kind of product are you looking for?"
+        log(log_path, question=question, answered=True, source="vague", confidence=None)
         return out
     if is_chitchat(question):
-        out = small_talk_reply("chitchat", persona, model, api_key=api_key)
+        out = small_talk_reply("chitchat", persona, model, api_key=api_key, question=question)
         if out is None:
             log(log_path, question=question, answered=False, source="chitchat", confidence=None, error="generation failed")
             return "Sounds good! Anything I can help you find?"
+        log(log_path, question=question, answered=True, source="chitchat", confidence=None)
+        return out
+    if is_medical_request(question):
+        out = small_talk_reply("medical", persona, model, api_key=api_key, question=question)
+        if out is None:
+            log(log_path, question=question, answered=False, source="medical", confidence=None, error="generation failed")
+            return "I can't give medical advice. It's best to check with a doctor or dermatologist. I'm still happy to help you find a product if you'd like."
+        log(log_path, question=question, answered=True, source="medical", confidence=None)
         return out
     customer = identify(question, customers, enabled=(cfg.get("customers") or {}).get("enabled", False))
     cust_ctx = profile_prompt(customer) if customer else None
     matches = recommend_products(qv, catalog, catalog_vecs)
+    # Retrieval is cheap to compute up front, and lets us prefer a store-info
+    # answer (policy, delivery, returns) over an incidental product match.
+    use_hybrid = cfg["retrieval"].get("hybrid", False)
+    hits = retrieve(question, qv, vecs, chunks, bm25=bm25 if use_hybrid else None, top_k=cfg["retrieval"]["top_k"])
+    top_conf = hits[0][1] if hits else 0.0
+    threshold = cfg["retrieval"].get("threshold")
     if is_buy_intent(question):
         if matches:
             prod = matches[0][0]
-            out = checkout(question, prod, persona, model, api_key=api_key, customer_ctx=cust_ctx)
+            out = checkout(question, prod, persona, model, api_key=api_key, customer_ctx=cust_ctx, prelaunch=cfg.get("checkout", {}).get("prelaunch", False))
             log(
                 log_path, question=question, answered=(out is not None),
                 source="checkout:" + prod.get("name", ""), confidence=matches[0][1],
                 error=(None if out is not None else "generation failed"),
             )
             return out if out is not None else "Sorry, I couldn't pull that up just now. Try again in a moment."
-        out = small_talk_reply("buy_which", persona, model, api_key=api_key)
+        out = small_talk_reply("buy_which", persona, model, api_key=api_key, question=question)
         if out is None:
             log(log_path, question=question, answered=False, source="buy_which", confidence=None, error="generation failed")
             return "Which one were you after? Tell me the name and I'll sort you out."
+        log(log_path, question=question, answered=True, source="buy_which", confidence=None)
         return out
-    if is_routine_intent(question):
+    if is_routine_intent(question) and cfg.get("routine_enabled", False):
         prods = [p for p, _ in matches] if matches else catalog
         out = routine(question, prods, persona, model, max_tokens=max_tokens, customer_ctx=cust_ctx, api_key=api_key)
         log(
@@ -93,7 +112,7 @@ def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers,
             error=(None if out is not None else "generation failed"),
         )
         return out if out is not None else "Sorry, I couldn't pull that together just now. Try again in a moment."
-    if matches:
+    if matches and matches[0][1] > top_conf:
         prods = [p for p, _ in matches]
         out = recommend(question, prods, persona, model, max_tokens=max_tokens, customer_ctx=cust_ctx, api_key=api_key)
         log(
@@ -102,10 +121,6 @@ def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers,
             error=(None if out is not None else "generation failed"),
         )
         return out if out is not None else "Sorry, I couldn't pull that up just now. Try again in a moment."
-    use_hybrid = cfg["retrieval"].get("hybrid", False)
-    hits = retrieve(question, qv, vecs, chunks, bm25=bm25 if use_hybrid else None, top_k=cfg["retrieval"]["top_k"])
-    top_conf = hits[0][1] if hits else 0.0
-    threshold = cfg["retrieval"].get("threshold")
     out = answer(question, hits, persona, model, max_tokens=max_tokens, threshold=threshold, customer_ctx=cust_ctx, api_key=api_key)
     log(
         log_path, question=question,

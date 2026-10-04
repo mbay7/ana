@@ -16,6 +16,10 @@ persona_file: persona.txt
 catalog_file: catalog.yaml
 max_tokens: 250
 
+# Homeware demo: no skincare routine builder, and no live store (pre-launch).
+checkout:
+  prelaunch: true
+
 ui:
   title: "Ana"
   subtitle: "Haven & Hearth's shopping assistant"

@@ -1,12 +1,37 @@
 """Answer a question from retrieved context, and recommend products, persona-prompted."""
 import json
 import os
+import re
 import urllib.request
 
 from .schema import Document
 
 DEFAULT_ABSTAIN = "I'm not sure about that, and I'd rather not guess. Let me connect you with a human who can help."
 _URL = "https://openrouter.ai/api/v1/chat/completions"
+
+_LINK_RE = re.compile(r"https?://[^\s\)\]\"']+")
+
+
+def _strip_foreign_links(text, allowed_links):
+    """Remove any URL from a reply that is not in the allowed (real) link set.
+
+    The model must only ever cite links that actually exist in the catalog; any
+    other URL it invents is stripped so a shopper never gets a fake link.
+    """
+    if not text:
+        return text
+    allowed = [a.strip() for a in allowed_links if a and a.strip()]
+    if not allowed:
+        return _LINK_RE.sub("", text)
+
+    def _keep(m):
+        url = m.group(0).rstrip(".,;:!?")
+        for a in allowed:
+            if a.rstrip("/") and (url.startswith(a.rstrip("/")) or a.startswith(url)):
+                return m.group(0)
+        return ""
+
+    return _LINK_RE.sub(_keep, text)
 
 
 def _api_key() -> str | None:
@@ -27,7 +52,7 @@ def _complete(messages, model, max_tokens=250, api_key=None):
     key = api_key or _api_key()
     if not key:
         return None
-    body = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": 0.7}
+    body = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": 0.3}
     req = urllib.request.Request(
         _URL, data=json.dumps(body).encode(),
         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
@@ -84,7 +109,7 @@ def recommend(question, products, persona, model, max_tokens=250, api_key=None, 
         ],
         model, max_tokens, api_key,
     )
-    return out
+    return _strip_foreign_links(out, [p.get("link", "") for p in products])
 
 
 _GREETING_WORDS = {"hi", "hello", "hey", "hiya", "howdy", "salam", "salaam", "مرحبا", "اهلا", "هاي", "yo", "morning", "afternoon", "evening", "welcome"}
@@ -148,6 +173,7 @@ _SMALLTALK_PROMPTS = {
     "vague": "The shopper asked to see products or browse without being specific. In your voice, warmly ask what kind of thing they are looking for, name one or two examples of what the store offers, and offer to help them find it.",
     "chitchat": "The shopper made a light, casual remark or acknowledgment, not a product question. Reply briefly in your voice, warm and human. Keep it short, one or two lines, and gently nudge back toward helping them find something.",
     "buy_which": "The shopper wants to buy something but did not say which product. Warmly ask which one they mean so you can help them check out.",
+    "medical": "The shopper asked something that may need a doctor or dermatologist. Do not diagnose or give medical advice. Kindly and briefly say you cannot give medical advice, suggest they check with a doctor or dermatologist, and offer to still help them find a product if they like. Short and warm.",
 }
 
 _CHITCHAT_ACKS = {
@@ -227,18 +253,31 @@ def is_routine_intent(text: str) -> bool:
     return any(t.startswith(p) for p in _ROUTINE_PHRASES)
 
 
+_MEDICAL_TRIGGERS = (
+    "diagnose", "diagnosis", "treat", "treatment", "cure", "prescribe",
+    "prescription", "medication", "antibiotic", "symptom", "symptoms",
+    "see a doctor", "should i see", "medical advice", "is it safe for",
+    "pregnant", "pregnancy", "breastfeed", "side effect",
+)
 
-def small_talk_reply(kind, persona, model, max_tokens=80, api_key=None):
+
+def is_medical_request(text: str) -> bool:
+    """Detect a question that needs a doctor, to hand off instead of guessing."""
+    t = " " + text.strip().lower() + " "
+    return any(tr in t for tr in _MEDICAL_TRIGGERS)
+
+
+def small_talk_reply(kind, persona, model, max_tokens=80, api_key=None, question=None):
     system = persona + "\n\n" + _SMALLTALK_PROMPTS[kind]
     out = _complete(
-        [{"role": "system", "content": system}, {"role": "user", "content": kind}],
+        [{"role": "system", "content": system}, {"role": "user", "content": question if question else kind}],
         model, max_tokens, api_key,
     )
     return out
 
 
-def checkout(question, product, persona, model, max_tokens=150, api_key=None, customer_ctx=None):
-    """Handle a buy/checkout intent: present the link, or defer pre-launch when no link exists."""
+def checkout(question, product, persona, model, max_tokens=150, api_key=None, customer_ctx=None, prelaunch=False):
+    """Handle a buy/checkout intent: present the link, or defer when no link exists."""
     name = product.get("name", "")
     price = product.get("price", "?")
     link = product.get("link", "")
@@ -251,17 +290,22 @@ def checkout(question, product, persona, model, max_tokens=150, api_key=None, cu
         )
         user = f"Product: {name} ({price})\nCheckout link: {link}\nShopper: {question}"
     else:
+        note = (
+            "Warmly say the brand is launching soon and full details are coming."
+            if prelaunch
+            else "Warmly offer to help them complete the order another way. Do not invent a link or a price."
+        )
         system = (
             base
-            + "\n\nThe shopper wants to buy a product but no link is available. Warmly say the brand is launching "
-            "soon and full details are coming. Do not invent a link or a price."
+            + "\n\nThe shopper wants to buy a product but no checkout link is available. "
+            + note
         )
         user = f"Product: {name} ({price})\nNo link available.\nShopper: {question}"
     out = _complete(
         [{"role": "system", "content": system}, {"role": "user", "content": user}],
         model, max_tokens, api_key,
     )
-    return out
+    return _strip_foreign_links(out, [link])
 
 
 def routine(question, products, persona, model, max_tokens=250, api_key=None, customer_ctx=None):
@@ -283,4 +327,4 @@ def routine(question, products, persona, model, max_tokens=250, api_key=None, cu
         [{"role": "system", "content": sys}, {"role": "user", "content": f"Question: {question}\n\nProducts:\n{catalog}"}],
         model, max_tokens, api_key,
     )
-    return out
+    return _strip_foreign_links(out, [p.get("link", "") for p in products])

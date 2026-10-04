@@ -100,7 +100,7 @@ class ChatIn(BaseModel):
 
 @app.post("/assistants/{client}/chat", dependencies=[Depends(require_auth)])
 def chat(client: str, body: ChatIn) -> dict:
-    if not (CLIENTS_DIR / client / "config.yaml").exists():
+    if client.startswith("_") or not (CLIENTS_DIR / client / "config.yaml").exists():
         raise HTTPException(status_code=404, detail="assistant not found")
     # BYOK: a per-client key stored in the vault overrides the shared env key.
     api_key = vault.get(f"{client}:openrouter")
