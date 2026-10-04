@@ -153,6 +153,8 @@ _VAGUE_PRODUCT_PATTERNS = (
     "what products do you", "what do you sell", "what do you have",
     "what do you stock", "what products are there", "list product", "list products",
     "see products", "see your products",
+    "tell me more", "what else", "what else do you have", "what are your products",
+    "what do you offer", "what do you recommend", "recommend something", "im not sure what",
 )
 
 
