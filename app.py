@@ -175,6 +175,8 @@ else:
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
+    if "memory" not in st.session_state:
+        st.session_state.memory = {}
 
     for m_ in st.session_state.messages:
         with st.chat_message(m_["role"]):
@@ -188,7 +190,7 @@ else:
             with st.spinner("…"):
                 a = chat.ask(
                     chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs,
-                    customers, cfg, prompt, api_key=api_key,
+                    customers, cfg, prompt, api_key=api_key, memory=st.session_state.memory,
                 )
             st.markdown(a)
         st.session_state.messages.append({"role": "assistant", "content": a})

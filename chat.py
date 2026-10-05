@@ -31,11 +31,12 @@ def build(cfg):
     return chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers
 
 
-def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key=None):
+def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key=None, memory=None):
     qv = embedder.embed([question])[0]
     model = cfg["model"]["generate"]
     max_tokens = cfg.get("max_tokens", 250)
     log_path = cfg["analytics_log"]
+    memory = memory if memory is not None else {}
     if is_greeting(question):
         out = greet(question, persona, model, max_tokens=140, api_key=api_key)
         if out is None:
@@ -88,12 +89,15 @@ def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers,
     top_conf = hits[0][1] if hits else 0.0
     threshold = cfg["retrieval"].get("threshold")
     if is_buy_intent(question):
-        if matches:
-            prod = matches[0][0]
+        # Resolve "I'll take it" to the last product we recommended, so a
+        # checkout intent without a named product checks out the right thing.
+        prod = matches[0][0] if matches else memory.get("last_product")
+        if prod:
             out = checkout(question, prod, persona, model, api_key=api_key, customer_ctx=cust_ctx, prelaunch=cfg.get("checkout", {}).get("prelaunch", False))
+            memory.pop("last_product", None)
             log(
                 log_path, question=question, answered=(out is not None),
-                source="checkout:" + prod.get("name", ""), confidence=matches[0][1],
+                source="checkout:" + prod.get("name", ""), confidence=(matches[0][1] if matches else None),
                 error=(None if out is not None else "generation failed"),
             )
             return out if out is not None else "Sorry, I couldn't pull that up just now. Try again in a moment."
@@ -114,6 +118,7 @@ def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers,
         return out if out is not None else "Sorry, I couldn't pull that together just now. Try again in a moment."
     if matches and matches[0][1] > top_conf:
         prods = [p for p, _ in matches]
+        memory["last_product"] = prods[0]
         out = recommend(question, prods, persona, model, max_tokens=max_tokens, customer_ctx=cust_ctx, api_key=api_key)
         log(
             log_path, question=question, answered=(out is not None),

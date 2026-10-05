@@ -38,7 +38,11 @@ def _api_key() -> str | None:
     key = os.environ.get("OPENROUTER_API_KEY")
     if key:
         return key
-    env_path = os.environ.get("HERMES_HOME", "/opt/data") + "/.env"
+    # ana's own env file, never another app's (e.g. Hermes's) .env. Defaults to
+    # <repo-root>/.env; override the path with ANA_ENV_FILE.
+    env_path = os.environ.get("ANA_ENV_FILE") or os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"
+    )
     try:
         for line in open(env_path):
             if line.startswith("OPENROUTER_API_KEY="):
