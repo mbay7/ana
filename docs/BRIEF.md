@@ -7,7 +7,7 @@ Ana is a chat assistant that answers a brand's customers from that brand's own d
 
 ## Who it is for
 - **Now:** Mohammed, as a public proof-of-work project on GitHub with a demo link anyone can open.
-- **Later:** paying clients, each with their own copy. Ana sits under the mblab.ai brand.
+- **Also:** paying clients, each with their own private copy. A first client is being set up; their name and content stay outside this public project. Ana sits under the mblab.ai brand.
 
 ## In scope
 What this round of work delivers — finishing what exists, not adding to it:
