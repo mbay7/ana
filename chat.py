@@ -7,7 +7,7 @@ from src.chunking import chunk_documents
 from src.config import load_config
 from src.customers import identify, load_customers, profile_prompt
 from src.embed import Embedder
-from src.generate import answer, checkout, greet, is_buy_intent, is_chitchat, is_farewell, is_greeting, is_routine_intent, is_thanks, is_vague_product_request, recommend, routine, small_talk_reply
+from src.generate import MAX_QUESTION_CHARS, answer, checkout, greet, is_buy_intent, is_chitchat, is_farewell, is_greeting, is_routine_intent, is_thanks, is_vague_product_request, recommend, routine, small_talk_reply
 from src.loaders import load_markdown_dir
 from src.recommend import embed_catalog, load_catalog, recommend_products
 from src.retrieve import retrieve
@@ -32,6 +32,10 @@ def build(cfg):
 
 
 def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key=None):
+    # Cap shopper input: bounds LLM/embedding cost per message and shrinks the injection surface.
+    question = (question or "").strip()[:MAX_QUESTION_CHARS]
+    if not question:
+        return "What can I help you find?"
     qv = embedder.embed([question])[0]
     model = cfg["model"]["generate"]
     max_tokens = cfg.get("max_tokens", 250)
