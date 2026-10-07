@@ -30,7 +30,7 @@ _Proposed by Claude from the existing roadmap — confirm or change at approval.
 ## Finished means
 _Found in the project, not asked — these checks already exist._
 
-1. All automated tests pass (44 today; 30 pass, 14 fail because one function was left unfinished).
+1. All automated tests pass — the 8 on the main version (6 pass today) plus the 36 the audit work adds.
 2. The quality check finds the right passage in the top five for at least 47 of the 50 answerable test questions — the score recorded on 30 September 2026 — and fails loudly if it drops below that.
 3. A stranger can start Ana from the README in three commands.
 4. The demo link answers a demo-brand question from a phone, and refuses a request with the wrong access token.
