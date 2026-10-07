@@ -18,6 +18,17 @@ These rules apply to every assistant working here (Claude, Hermes, or any other)
 - If you find unsaved or unfinished work, stop and ask before touching it.
 - Do not add a new hand-written phrase rule for chat behaviour without a failing test case for it first.
 
+## Switching between assistants
+
+Mohammed works with Claude Code on the Mac and with Hermes on his phone. Both follow these four moves so each knows what the other did.
+
+1. **Before starting:** pull the notes vault and read the other assistant's "Where I left off" (`Agent Knowledge/For-Claude.md` is written by Hermes, `Projects/vps-ops/For-Hermes.md` by Claude). Then fetch this project from GitHub and check your copy is not behind.
+2. **Say it back** to Mohammed in one line, with how old the note is.
+3. **After finishing anything that changed something:** rewrite your own "Where I left off" (replace it, never keep two).
+4. **Upload straight away and confirm it arrived** before telling him the other assistant can see it.
+
+The notes only point at the work. Where this project is up to is `docs/PLAN.md`, here.
+
 ## Never
 
 - Never commit passwords, keys or client data. Settings are listed by name in `.env.example`; values stay in `.env`, which is not committed.
@@ -33,9 +44,9 @@ Plain, everyday language. Say what it does and what he needs to do — usually n
 ## Checks
 
 - Run the tests: `.venv/bin/python -m pytest -q`
-- Run the quality check: `.venv/bin/python eval/run_eval.py` — must stay at or above 47 of 50 answerable questions found in the top five (94%). It has no built-in pass mark yet; adding one is Phase 1, step 4.
+- Run the quality check: `.venv/bin/python eval/run_eval.py` — must stay at or above 47 of 50 answerable questions found in the top five (94%). It has no built-in pass mark yet; adding one is Phase 1, step 6.
 - Run it locally: `streamlit run app.py` for the chat page, or `python chat.py "your question"` for one question. `CLIENT=<name>` picks the brand; the default is `demo`.
 
 ## Who writes code
 
-Claude writes and saves code. Hermes proposes changes as text and does not upload them.
+Claude writes and saves code. Hermes proposes changes as text and does not upload them. Saving to the main version makes it live on the public site, so Claude asks Mohammed each time.
