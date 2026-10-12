@@ -18,12 +18,17 @@ CUSTOMERS = [
 ]
 
 
-def test_identify_by_email():
-    assert identify("hi, this is omar@example.com", CUSTOMERS)["name"] == "Omar"
+def test_identify_is_off_by_default():
+    # Identity must come from a signed-in session, not from what a shopper types.
+    assert identify("hi, this is omar@example.com", CUSTOMERS) is None
 
 
-def test_identify_by_name():
-    assert identify("I'm Sarah, can I return something?", CUSTOMERS)["name"] == "Sarah"
+def test_identify_by_email_when_enabled():
+    assert identify("hi, this is omar@example.com", CUSTOMERS, enabled=True)["name"] == "Omar"
+
+
+def test_identify_never_by_name():
+    assert identify("I'm Sarah, can I return something?", CUSTOMERS, enabled=True) is None
 
 
 def test_identify_unknown():
