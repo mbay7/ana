@@ -30,7 +30,7 @@ Each is finished when it is one dated line in `DECISIONS.md`.
 3. ✅ **Combine the unfinished audit work with the newer main version**, on a side branch. Keep the safety fixes already live; bring across the audit's tests; finish the function left unfinished. — **done when** every test passes on the side branch.
 4. ✅ **Run the quality check and record the score.** — **done when** the score is in the Log and is at least 47 of 50.
 5. **Give the quality check a pass mark, and count "I don't know" answers.** — **done when** a deliberately lowered run fails.
-6. **Make GitHub run the tests before anything is built.** — **done when** a deliberately broken test stops the build.
+6. **Make GitHub run the tests before anything is built**, and lock the build's outside helpers to exact versions (today they follow whatever their makers publish next). — **done when** a deliberately broken test stops the build and every helper in the build file is fixed to one exact version.
 7. **Limits:** messages per visitor, message length, and a monthly spend ceiling per brand. — **done when** a flood of messages is refused in a test.
 8. **One access code per brand; only listed websites may call Ana.** — **done when** brand A's code is refused for brand B in a test.
 9. **Put the programmable access (API) inside the container** and fix the versions of the building blocks. — **done when** one command starts both the chat page and the API, and the health check answers.
