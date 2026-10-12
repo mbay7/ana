@@ -1,37 +1,36 @@
 # Brief — Ana
 
-_Agreed: (filled in when the plan is approved)_
+_Agreed: 2026-10-12_
 
 ## What it is
-Ana is a chat assistant that answers a brand's customers from that brand's own documents, in the brand's voice. One engine serves many brands: each brand is a folder of its content, and the engine does not change between them.
+Ana is a chat assistant that answers a business's customers from that business's own documents, in its voice, in Arabic and English. One engine serves many brands: each brand is a folder of its content, and the engine does not change between them.
 
 ## Who it is for
-- **Now:** Mohammed, as a public proof-of-work project on GitHub with a demo link anyone can open.
-- **Also:** paying clients, each with their own private copy. A first client is being set up; their name and content stay outside this public project. Ana sits under the mblab.ai brand.
+- **Customers:** any small business that answers the same customer questions every day. The first client's trade is shown first on the public page.
+- **How they get it:** they set it up themselves. Those who want help buy set-up from MBLab, the consultancy Ana sits under. Until the dashboard exists (Stage 7), every brand is set up with help.
+- **Also:** Mohammed's public proof-of-work project on GitHub.
+- A first client is being set up; their name and content stay outside this public project.
 
 ## In scope
-What this round of work delivers — finishing what exists, not adding to it:
-
-- Answers questions from a brand's documents, and says "I don't know" when the documents don't cover it.
-- Works for more than one brand without code changes (English and Arabic demos included).
-- A public demo link, locked to the fictional demo brand.
-- Packaged so it can be moved to a server or a client's setup later without rework.
-- A recorded quality score that is checked automatically on every change.
+- Answers from a brand's documents, and says "I don't know" when they don't cover it.
+- Holds a conversation: remembers the last few turns.
+- Hands off to a person for real, and says honestly that it is an assistant.
+- Works for more than one brand without code changes, each with its own access code and spend ceiling.
+- A public page with a demo anyone can try, in Arabic and English.
+- A weekly one-page report for each brand.
+- Later stages, in order: WhatsApp, a dashboard, public sign-up with payments.
 
 ## Not doing
-_Proposed by Claude from the existing roadmap — confirm or change at approval._
-
-- No new features in this round. Everything on the old roadmap's "Next" list is parked.
 - No taking actions on a customer's behalf (refunds, returns, order changes).
-- No WhatsApp or other new channels.
+- No medical advice or treatment claims.
 - No real client's content or name in the public project.
-- No rewrite of how Ana decides what a message means. The phrase-by-phrase rules are frozen as they are.
+- No sign-up, dashboard or payments before three brands are live (Stages 7 and 8).
+- No new feature outside the current stage; new ideas go to Parked.
 
 ## Finished means
-_Found in the project, not asked — these checks already exist._
-
-1. All automated tests pass — the 8 on the main version (6 pass today) plus the 36 the audit work adds.
-2. The quality check finds the right passage in the top five for at least 47 of the 50 answerable test questions — the score recorded on 30 September 2026 — and fails loudly if it drops below that.
-3. A stranger can start Ana from the README in three commands.
-4. The demo link answers a demo-brand question from a phone, and refuses a request with the wrong access token.
-5. Mohammed asks ten plain questions himself, including in Arabic, and ticks each one.
+1. All automated tests pass, and GitHub refuses to build when one fails.
+2. The quality check finds the right passage in the top five for at least 47 of 50 answerable test questions, with separate scores for Arabic and for "I don't know" answers.
+3. The ten faults listed in the 12 October 2026 assessment each have a passing test.
+4. A stranger can start Ana from the README in three commands.
+5. Mohammed's own walk-through: ten turns in English and ten in Arabic, no dropped question.
+6. One client paying monthly, with a case study showing real numbers.

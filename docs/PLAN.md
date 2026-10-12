@@ -1,60 +1,85 @@
 # Plan — Ana
 
-Approved by Mohammed:
+Approved by Mohammed: 2026-10-12
 
 > No date on the line above means no code. Only Mohammed's own yes fills it in.
 
 ## Now
-Waiting for approval. First up: Phase 1, step 2 — bring the Mac's copy up to date with GitHub.
+Stage 1, step 1 — bring the Mac's copy up to date with GitHub.
 
-## Important to know before approving
-- **Anything saved to the main version on GitHub goes live.** The public site `ana.mblab.ai` picks up the main version on a timer (about every 15 minutes, per Hermes). Nothing checks the tests first.
-- **This plan was rewritten on 7 October 2026** after the comparison in step 1. The first draft was written from a Mac copy that was four saves behind GitHub, so it listed work that was already done.
+## Important to know
+- **Anything saved to the main version on GitHub goes live.** The public site `ana.mblab.ai` follows the main version on a timer (per Hermes). Claude asks Mohammed before every save to the main version.
+- **Order is promised, dates are not.** A stage starts only when the one before it is finished. One exception is marked.
+- This plan replaces the 7 October draft. It follows the assessment of 12 October 2026.
 
-## Steps
+## Stages
 
-Each step is small enough to finish and check. "Done when" is something the owner could verify himself.
+### Stage 0 — Decide (no code)
+Each is finished when it is one dated line in `DECISIONS.md`.
+- ~~How Ana is sold~~ — decided 12 Oct: people set it up themselves, reached in steps.
+- ~~Who it is for~~ — decided 12 Oct: any small business.
+- Plan names and prices.
+- Licence.
+- Whether Ana says it is an AI (Claude's advice: yes).
+- Where real clients' folders are kept (Claude's advice: one private project).
+- The first client's facts: signed? launch date? website first or WhatsApp? who answers hand-offs?
 
-### Phase 1 — Catch up and stabilise
-1. ~~**Compare the server copy with this one.**~~ Done 7 October — see Log.
-2. **Bring the Mac's copy up to date with GitHub.** — **done when** the Mac's main version and GitHub's are the same save.
-3. **Fix the two out-of-date tests on the main version.** They still expect Ana to recognise a customer from what they type; that was switched off on purpose on 4 October for privacy. — **done when** all 8 tests on the main version pass.
-4. **Combine the unfinished audit work with the newer main version.** The two changed the same parts of two files (`chat.py`, `src/generate.py`) and clash. Go through each clash, keep the safety fixes already live, bring across the audit's extra tests, and finish the function that was left unfinished (`_bare()`). All on a side branch, not the main version. — **done when** every test passes on the side branch and nothing live has changed.
-5. **Run the quality check and record today's score.** — **done when** the score is in the Log below and is at least 47 of 50.
-6. **Give the quality check a pass mark** so it fails when the score drops. — **done when** a deliberately lowered run fails and a normal run passes.
-7. **Make GitHub run the tests before anything is built.** Today it builds the package without testing it. — **done when** a deliberately broken test stops the build.
-8. **Move the combined work into the main version.** Claude asks first, because this goes live. — **done when** the main version has all tests passing, the live site still answers a demo question, and the audit branch is removed.
+### Stage 1 — A trustworthy base
+1. **Bring the Mac's copy up to date with GitHub.** — **done when** the Mac's main version and GitHub's are the same save.
+2. **Fix the two out-of-date tests.** They expect Ana to recognise a customer from typed text; that was switched off on purpose. — **done when** all 8 tests on the main version pass.
+3. **Combine the unfinished audit work with the newer main version**, on a side branch. Keep the safety fixes already live; bring across the audit's tests; finish the function left unfinished. — **done when** every test passes on the side branch.
+4. **Run the quality check and record the score.** — **done when** the score is in the Log and is at least 47 of 50.
+5. **Give the quality check a pass mark, and count "I don't know" answers.** — **done when** a deliberately lowered run fails.
+6. **Make GitHub run the tests before anything is built.** — **done when** a deliberately broken test stops the build.
+7. **Limits:** messages per visitor, message length, and a monthly spend ceiling per brand. — **done when** a flood of messages is refused in a test.
+8. **One access code per brand; only listed websites may call Ana.** — **done when** brand A's code is refused for brand B in a test.
+9. **Put the programmable access (API) inside the container** and fix the versions of the building blocks. — **done when** one command starts both the chat page and the API, and the health check answers.
+10. **Move the combined work into the main version.** Claude asks first. — **done when** the main version has all tests passing and the live site still answers a demo question.
 
-### Phase 2 — Tidy how it runs
-1. **Settings template** listing every setting by name, no values. — **done when** every setting the code reads is in `.env.example`.
-2. **Fix the versions of the building blocks** Ana depends on. — **done when** a fresh install passes all tests.
-3. **Limit which websites may call Ana.** Today any site may. — **done when** a call from an unlisted site is refused in a test.
-4. **Finish moving the live site onto the container.** The container is built; the live server has not been switched to it. This is server work: Claude writes the steps, Mohammed or Hermes runs them. — **done when** the live site runs from the container and answers a demo question.
-5. **Agree how a change reaches the live site** — who may save to the main version, and what must pass first. — **done when** it is one line in `DECISIONS.md`.
+### Stage 2 — A conversation that works
+1. **Memory of the last few turns.** — **done when** "yes" and "the second one" are answered correctly in tests.
+2. **One decision step replaces the phrase rules.** — **done when** the existing intent tests pass and "Hi, can I return this?" gets its answer.
+3. **A real hand-off:** takes a name and contact, emails the brand's team a summary, tells the shopper the wait. — **done when** a test hand-off arrives in an inbox.
+4. **Says it is an AI** (if decided in Stage 0) and the medical rule matches whole words. — **done when** tests cover both.
+5. **Keep shopper text and document text apart** in what goes to the model. — **done when** the planted-instruction tests pass.
+6. **Store less:** hide phone numbers and names in logs; delete after a fixed period. — **done when** a test shows both.
+7. **Arabic test questions** added to the quality check. — **done when** Arabic has its own recorded score.
+8. **Mohammed's walk-through:** ten turns in English and ten in Arabic. — **done when** he ticks each one with no dropped question.
 
-### Phase 3 — Ready to show
-1. **Rewrite the README to match the brief.** — **done when** someone new can start Ana in three commands.
-2. **Rewrite the roadmap as Shipped / Now / Parked.** — **done when** it matches this plan.
-3. **Lock the public demo to the demo brand,** and decide whether the "build your own assistant" page stays public (it lets visitors spend Mohammed's key). — **done when** the decision is in `DECISIONS.md` and the demo behaves that way.
-4. **Mohammed's own walk-through:** ten plain questions, including Arabic. — **done when** he ticks each one.
+### Stage 2b — Ana's public page (may overlap with waiting on the first client's content)
+One page in the `ana-site` project, phone first, Arabic and English. First screen: one promise, a real chat example, one contact button. Then: who it is for · what it does · how it works · try the demo · the weekly report · prices · about · contact. — **done when** it opens cleanly on a phone in both languages and Mohammed approves it before it is published.
+
+### Stage 3 — First client live on their website
+Private project for client folders · 30 questions written by the client as the acceptance test · chat bubble on their site · weekly report · backups · live server moved to the container. — **done when** the client's 30 questions pass at the agreed mark, a hand-off reaches their inbox, and the first weekly report is sent.
+
+### Stage 4 — Prove it is worth paying for
+Four to six weeks of real numbers; compare shoppers who used the chat with those who did not. — **done when** there is a one-page case study with real figures, approved by the client.
+
+### Stage 5 — WhatsApp
+Through an approved WhatsApp provider. Work out the cost per conversation before building. — **done when** a shopper gets an answer and a hand-off on WhatsApp and the cost per conversation is known.
+
+### Stage 6 — Repeatable
+An onboarding checklist; each repeated step is noted as a future dashboard screen. — **done when** the second and third brands are live using only the checklist.
+
+### Stage 7 — The dashboard
+The repeated steps become screens: upload documents, set the tone, test, see the weekly numbers. A login per brand and a real database. — **done when** a brand owner changes their own content and sees their own numbers without Mohammed.
+
+### Stage 8 — Public sign-up
+Sign-up, card payments, plans and limits, help pages, terms, privacy and refund pages, self-connect for WhatsApp. — **done when** a stranger signs up, pays, and has a working assistant with no help.
 
 ## Parked
-Not being built in this round. An item moves into Steps only when Mohammed says so.
+Not being built until Mohammed moves it into a stage.
 
-- **Open decision — licence.** Mohammed wants to change it from non-commercial; to what is undecided.
-- **Open decision — where real clients' folders are kept.** Today they exist only on the server, with no backup. Claude's suggestion: one private GitHub project just for client folders, never this public one.
-- **Open decision — a real client's name appears in this public project:** in commit messages from 4 October, and in two files (`.dockerignore`, `eval/run_llm_eval.py`). The two files are a small fix; the history is not. Mohammed's call.
-- Replace the phrase-by-phrase chat rules with a single decision step (TypeSafe is set up for this). The existing intent tests would be its acceptance check.
-- Order-status lookup, and returns/refunds with human approval.
-- WhatsApp connector.
-- Shareable link and a widget to embed on a site.
-- Hand-off to a human with the full conversation.
+- **Open decision — a real client's name appears in this public project:** in save messages from 4 October and in two files (`.dockerignore`, `eval/run_llm_eval.py`). The two files are a small fix; the history is not.
+- Clients bringing their own model keys.
+- Order-status lookup, and returns or refunds with human approval.
+- Shareable link.
 - Photos and voice.
 - Proactive outreach and cart recovery.
-- A real database instead of files.
 
 ## Log
 One dated line per finished step: what changed, and the test result.
 
-- 2026-10-07 — Before the plan: unsaved audit work saved exactly as it was (commit `49b8546`) and uploaded as a backup. Tests on that branch unchanged: 30 pass, 14 fail.
-- 2026-10-07 — Phase 1, step 1 done. Hermes listed the server's copy: no unsaved changes, same save as GitHub's main version (`acc0318`, 5 October). The Mac was four saves behind. Already on GitHub and so removed from this plan: Ana no longer borrows Hermes's key file; the access check refuses by default; container packaging; an automatic build. Not on GitHub, on the server only: brand files, the site prototype, one real client's folder. Tests on GitHub's main version: 6 pass, 2 fail.
+- 2026-10-07 — Before the plan: unsaved audit work saved exactly as it was (save `49b8546`) and uploaded as a backup. Tests on that branch: 30 pass, 14 fail.
+- 2026-10-07 — Compared the server copy with GitHub (Hermes's inventory): no unsaved changes on the server, same save as GitHub's main version (`acc0318`). The Mac was four saves behind. Tests on the main version: 6 pass, 2 fail.
+- 2026-10-12 — Plan approved by Mohammed after the assessment. Found the live page showing owner-only pages; reported to Hermes for a fix on the server.
