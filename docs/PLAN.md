@@ -5,7 +5,7 @@ Approved by Mohammed: 2026-10-12
 > No date on the line above means no code. Only Mohammed's own yes fills it in.
 
 ## Now
-Stage 1, step 1 — bring the Mac's copy up to date with GitHub.
+Stage 1, step 5 — give the quality check a pass mark, and count "I don't know" answers. Work is on the side branch `stage1/combine`; nothing is in the main version yet.
 
 ## Important to know
 - **Anything saved to the main version on GitHub goes live.** The public site `ana.mblab.ai` follows the main version on a timer (per Hermes). Claude asks Mohammed before every save to the main version.
@@ -25,10 +25,10 @@ Each is finished when it is one dated line in `DECISIONS.md`.
 - The first client's facts: signed? launch date? website first or WhatsApp? who answers hand-offs?
 
 ### Stage 1 — A trustworthy base
-1. **Bring the Mac's copy up to date with GitHub.** — **done when** the Mac's main version and GitHub's are the same save.
-2. **Fix the two out-of-date tests.** They expect Ana to recognise a customer from typed text; that was switched off on purpose. — **done when** all 8 tests on the main version pass.
-3. **Combine the unfinished audit work with the newer main version**, on a side branch. Keep the safety fixes already live; bring across the audit's tests; finish the function left unfinished. — **done when** every test passes on the side branch.
-4. **Run the quality check and record the score.** — **done when** the score is in the Log and is at least 47 of 50.
+1. ✅ **Bring the Mac's copy up to date with GitHub.** — **done when** the Mac's main version and GitHub's are the same save.
+2. ✅ **Fix the two out-of-date tests.** They expect Ana to recognise a customer from typed text; that was switched off on purpose. — **done when** all 8 tests on the main version pass.
+3. ✅ **Combine the unfinished audit work with the newer main version**, on a side branch. Keep the safety fixes already live; bring across the audit's tests; finish the function left unfinished. — **done when** every test passes on the side branch.
+4. ✅ **Run the quality check and record the score.** — **done when** the score is in the Log and is at least 47 of 50.
 5. **Give the quality check a pass mark, and count "I don't know" answers.** — **done when** a deliberately lowered run fails.
 6. **Make GitHub run the tests before anything is built.** — **done when** a deliberately broken test stops the build.
 7. **Limits:** messages per visitor, message length, and a monthly spend ceiling per brand. — **done when** a flood of messages is refused in a test.
@@ -83,3 +83,4 @@ One dated line per finished step: what changed, and the test result.
 - 2026-10-07 — Before the plan: unsaved audit work saved exactly as it was (save `49b8546`) and uploaded as a backup. Tests on that branch: 30 pass, 14 fail.
 - 2026-10-07 — Compared the server copy with GitHub (Hermes's inventory): no unsaved changes on the server, same save as GitHub's main version (`acc0318`). The Mac was four saves behind. Tests on the main version: 6 pass, 2 fail.
 - 2026-10-12 — Plan approved by Mohammed after the assessment. Found the live page showing owner-only pages; reported to Hermes for a fix on the server.
+- 2026-10-12 — Stage 1 steps 1–4 done on the side branch `stage1/combine`. Mac's main version now equals GitHub's (`acc0318`). Audit work combined with the newer main version; the unfinished function finished, so "Hi, can I return this?" is no longer treated as a greeting. Two out-of-date tests rewritten to match the privacy change. Tests: 45 pass, 0 fail. Quality check: 47 of 50 (94%), unchanged. Not checked: a live model reply (no model key on the Mac). Nothing saved to the main version.
