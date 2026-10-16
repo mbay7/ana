@@ -37,15 +37,18 @@ def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers,
     question = (question or "").strip()[:MAX_QUESTION_CHARS]
     if not question:
         return "What can I help you find?"
-    # Monthly spend ceiling per brand: refuse politely once it is reached.
-    if limits.over_budget(cfg):
+    # Monthly spend ceiling per brand: hold this message's likely cost BEFORE any
+    # model call, so parallel messages cannot overshoot; refuse politely if it
+    # would pass the ceiling or the spend file cannot be checked.
+    reservation = limits.reserve(cfg, limits.estimate_usd(cfg, question))
+    if reservation is None:
         log(cfg["analytics_log"], question=question, answered=False, source="limit", confidence=None, error="monthly spend ceiling")
         return limits.OVER_BUDGET
     with track_usage() as usage:
         try:
             return _ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key, memory, session_customer_id)
         finally:
-            limits.record_spend(cfg, usage)
+            limits.settle(cfg, reservation, usage)
 
 
 def _ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key=None, memory=None, session_customer_id=None):

@@ -8,9 +8,9 @@ from src.chunking import chunk_documents
 from src.config import load_config
 from src.customers import identify, load_customers, profile_prompt
 from src.embed import Embedder
-from src.generate import MAX_QUESTION_CHARS, answer, recommend
+from src.generate import MAX_QUESTION_CHARS, answer, recommend, track_usage
 from src import limits
-from src.admin import admin_available, password_ok
+from src.admin import LoginGuard, admin_available, try_login
 from src.loaders import load_markdown_dir
 from src.persist import delete, load_all, save
 from src.recommend import embed_catalog, load_catalog, recommend_products
@@ -41,20 +41,21 @@ def build():
 
 
 @st.cache_resource
-def visitor_limiter():
-    # One limiter for the whole server, so a visitor opening many chats is still counted once.
+def server_limiter():
+    # One limiter for the whole server process: a reload or a new chat cannot reset it.
     return limits.RateLimiter()
 
 
-def visitor_key():
-    """The visitor's address as reported by Cloudflare, or None when not behind it.
+@st.cache_resource
+def login_guard():
+    # Wrong owner-password guesses, counted on the server (per visitor and overall).
+    return LoginGuard()
 
-    The direct connection is usually the local proxy, so it is not used: keying on
-    it would make every visitor share one limit.
-    """
+
+def current_visitor():
+    """The visitor's address, only when ANA_BEHIND_CLOUDFLARE says Cloudflare set it."""
     try:
-        headers = st.context.headers
-        return headers.get("CF-Connecting-IP") or None
+        return limits.visitor_key(st.context.headers)
     except Exception:
         return None
 
@@ -94,11 +95,15 @@ if admin_available():
         admin = True
     else:
         given = st.sidebar.text_input("Owner password", type="password")
-        if given and password_ok(given):
-            st.session_state["_ana_admin_ok"] = True
-            admin = True
-        elif given:
-            st.sidebar.error("Wrong password.")
+        if given:
+            result = try_login(given, login_guard(), current_visitor())
+            if result == "ok":
+                st.session_state["_ana_admin_ok"] = True
+                admin = True
+            elif result == "locked":
+                st.sidebar.error("Too many wrong attempts. Try again later.")
+            else:
+                st.sidebar.error("Wrong password.")
 page = st.sidebar.radio("View", ["Chat", "Usage", "Build"]) if admin else "Chat"
 
 if page == "Usage":
@@ -194,7 +199,15 @@ elif page == "Build":
                     qv = embedder.embed([q])[0]
                     hits = retrieve(q, qv, b["vecs"], b["chunks"], top_k=4)
                     threshold = cfg["retrieval"].get("threshold")
-                    a_out = answer(q, hits, b["persona"], cfg["model"]["generate"], max_tokens=250, threshold=threshold, api_key=api_key)
+                    held = limits.reserve(cfg, limits.estimate_usd(cfg, q))
+                    if held is None:
+                        a_out = limits.OVER_BUDGET
+                    else:
+                        with track_usage() as usage:
+                            try:
+                                a_out = answer(q, hits, b["persona"], cfg["model"]["generate"], max_tokens=250, threshold=threshold, api_key=api_key)
+                            finally:
+                                limits.settle(cfg, held, usage)
                 st.markdown(a_out)
             st.session_state.built_msgs.append({"role": "assistant", "content": a_out})
     else:
@@ -218,11 +231,9 @@ else:
         with st.chat_message("user"):
             st.markdown(prompt)
         with st.chat_message("assistant"):
-            refusal = limits.check_chat(st.session_state, cfg)
-            if refusal is None and not visitor_limiter().allow(
-                visitor_key(), limits.setting(cfg, "max_visitor_messages_per_minute")
-            ):
-                refusal = limits.TOO_FAST
+            # Server-wide and per-visitor counts live on the server; the per-chat
+            # count in session_state is an extra layer a reload can reset.
+            refusal = limits.check_message(st.session_state, cfg, server_limiter(), current_visitor())
             if refusal is not None:
                 a = refusal
             else:
