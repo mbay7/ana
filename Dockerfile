@@ -30,6 +30,7 @@ ENV CLIENT=demo \
     STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
     STREAMLIT_SERVER_PORT=8501
 
-EXPOSE 8501
+# 8501 = chat page (default CMD); 8000 = API (docker-compose ana-api service).
+EXPOSE 8501 8000
 
 CMD ["streamlit", "run", "app.py"]
