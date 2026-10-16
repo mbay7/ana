@@ -32,7 +32,7 @@ def build(cfg):
     return chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers
 
 
-def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key=None, memory=None):
+def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key=None, memory=None, session_customer_id=None):
     # Cap shopper input: bounds LLM/embedding cost per message and shrinks the injection surface.
     question = (question or "").strip()[:MAX_QUESTION_CHARS]
     if not question:
@@ -43,12 +43,12 @@ def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers,
         return limits.OVER_BUDGET
     with track_usage() as usage:
         try:
-            return _ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key, memory)
+            return _ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key, memory, session_customer_id)
         finally:
             limits.record_spend(cfg, usage)
 
 
-def _ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key=None, memory=None):
+def _ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key=None, memory=None, session_customer_id=None):
     qv = embedder.embed([question])[0]
     model = cfg["model"]["generate"]
     max_tokens = cfg.get("max_tokens", 250)
@@ -96,7 +96,8 @@ def _ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers
             return "I can't give medical advice. It's best to check with a doctor or dermatologist. I'm still happy to help you find a product if you'd like."
         log(log_path, question=question, answered=True, source="medical", confidence=None)
         return out
-    customer = identify(question, customers, enabled=(cfg.get("customers") or {}).get("enabled", False))
+    # No signed-in session is wired yet, so no customer is identified (order history stays private).
+    customer = identify(question, customers, enabled=(cfg.get("customers") or {}).get("enabled", False), session_customer_id=session_customer_id)
     cust_ctx = profile_prompt(customer) if customer else None
     matches = recommend_products(qv, catalog, catalog_vecs)
     # Retrieval is cheap to compute up front, and lets us prefer a store-info
