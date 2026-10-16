@@ -44,7 +44,7 @@ Plain, everyday language. Say what it does and what he needs to do — usually n
 ## Checks
 
 - Run the tests: `.venv/bin/python -m pytest -q`
-- Run the quality check: `.venv/bin/python eval/run_eval.py` — must stay at or above 47 of 50 answerable questions found in the top five (94%). It has no built-in pass mark yet; adding one is Phase 1, step 6.
+- Run the quality check: `.venv/bin/python eval/run_eval.py` — it now has a pass mark and exits with an error when Ana gets worse. The bar is in `eval/thresholds.json` ("never worse than today"): at least 47 of 50 answerable questions found in the top five, no "I don't know" on questions she can answer, and at least 2 of 10 unanswerable questions declined. Never lower a number in that file without Mohammed's yes; raise it when Ana genuinely improves.
 - Run it locally: `streamlit run app.py` for the chat page, or `python chat.py "your question"` for one question. `CLIENT=<name>` picks the brand; the default is `demo`.
 
 ## Who writes code
