@@ -1,5 +1,4 @@
 """Streamlit chat UI (repo-root entry; runs on Streamlit Community Cloud or locally)."""
-import os
 
 import streamlit as st
 
@@ -11,6 +10,7 @@ from src.customers import identify, load_customers, profile_prompt
 from src.embed import Embedder
 from src.generate import MAX_QUESTION_CHARS, answer, recommend
 from src import limits
+from src.admin import admin_available, password_ok
 from src.loaders import load_markdown_dir
 from src.persist import delete, load_all, save
 from src.recommend import embed_catalog, load_catalog, recommend_products
@@ -85,9 +85,20 @@ if cfg.get("language") == "ar":
         unsafe_allow_html=True,
     )
 
-# Usage/Build are admin-only: they expose shopper questions and can fetch URLs
-# server-side. Hide them unless ANA_ADMIN is explicitly set in the environment.
-admin = os.environ.get("ANA_ADMIN", "").strip().lower() in ("1", "true", "yes", "on")
+# Usage/Build are owner-only: they expose shopper questions and can fetch URLs
+# server-side. They need ANA_ADMIN switched on AND the ANA_ADMIN_PASSWORD entered;
+# with no password set they stay off.
+admin = False
+if admin_available():
+    if st.session_state.get("_ana_admin_ok"):
+        admin = True
+    else:
+        given = st.sidebar.text_input("Owner password", type="password")
+        if given and password_ok(given):
+            st.session_state["_ana_admin_ok"] = True
+            admin = True
+        elif given:
+            st.sidebar.error("Wrong password.")
 page = st.sidebar.radio("View", ["Chat", "Usage", "Build"]) if admin else "Chat"
 
 if page == "Usage":
