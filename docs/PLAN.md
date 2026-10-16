@@ -32,6 +32,7 @@ Each is finished when it is one dated line in `DECISIONS.md`.
 5. **Give the quality check a pass mark, and count "I don't know" answers.** — **done when** a deliberately lowered run fails.
 6. **Make GitHub run the tests before anything is built**, and lock the build's outside helpers to exact versions (today they follow whatever their makers publish next). — **done when** a deliberately broken test stops the build and every helper in the build file is fixed to one exact version.
 7. **Limits:** messages per visitor, message length, and a monthly spend ceiling per brand. — **done when** a flood of messages is refused in a test.
+   - *Partly done 16 Oct (in the app):* message length (500 characters), messages per chat, messages per minute per chat and per visitor, and a monthly spend ceiling per brand worked out from word-pieces (tokens) used. A flood is refused in a test. **Still to do:** a limit at Cloudflare in front of the server (the in-app visitor limit only works when Cloudflare passes on the visitor's address); the same limits for the programmable access (API); checking the price settings match the model really used.
 8. **One access code per brand; only listed websites may call Ana.** — **done when** brand A's code is refused for brand B in a test.
 9. **Put the programmable access (API) inside the container** and fix the versions of the building blocks. — **done when** one command starts both the chat page and the API, and the health check answers.
 10. **Move the combined work into the main version.** Claude asks first. — **done when** the main version has all tests passing and the live site still answers a demo question.
@@ -43,6 +44,7 @@ Each is finished when it is one dated line in `DECISIONS.md`.
 4. **Says it is an AI** (if decided in Stage 0) and the medical rule matches whole words. — **done when** tests cover both.
 5. **Keep shopper text and document text apart** in what goes to the model. — **done when** the planted-instruction tests pass.
 6. **Store less:** hide phone numbers and names in logs; delete after a fixed period. — **done when** a test shows both.
+   - *Partly done 16 Oct:* phone and order numbers are hidden and logs are kept 30 days, with tests. **Still to do:** hiding names.
 7. **Arabic test questions** added to the quality check. — **done when** Arabic has its own recorded score.
 8. **Mohammed's walk-through:** ten turns in English and ten in Arabic. — **done when** he ticks each one with no dropped question.
 
@@ -70,7 +72,7 @@ Sign-up, card payments, plans and limits, help pages, terms, privacy and refund 
 ## Parked
 Not being built until Mohammed moves it into a stage.
 
-- **Open decision — a real client's name appears in this public project:** in save messages from 4 October and in two files (`.dockerignore`, `eval/run_llm_eval.py`). The two files are a small fix; the history is not.
+- **Open decision — a real client's name appears in this public project:** in save messages from 4 October. The two files were fixed on 16 October; the history is not rewritten.
 - Clients bringing their own model keys.
 - Order-status lookup, and returns or refunds with human approval.
 - Shareable link.
@@ -84,3 +86,4 @@ One dated line per finished step: what changed, and the test result.
 - 2026-10-07 — Compared the server copy with GitHub (Hermes's inventory): no unsaved changes on the server, same save as GitHub's main version (`acc0318`). The Mac was four saves behind. Tests on the main version: 6 pass, 2 fail.
 - 2026-10-12 — Plan approved by Mohammed after the assessment. Found the live page showing owner-only pages; reported to Hermes for a fix on the server.
 - 2026-10-12 — Stage 1 steps 1–4 done on the side branch `stage1/combine`. Mac's main version now equals GitHub's (`acc0318`). Audit work combined with the newer main version; the unfinished function finished, so "Hi, can I return this?" is no longer treated as a greeting. Two out-of-date tests rewritten to match the privacy change. Tests: 45 pass, 0 fail. Quality check: 47 of 50 (94%), unchanged. Not checked: a live model reply (no model key on the Mac). Nothing saved to the main version.
+- 2026-10-16 — Security fixes from the audit, approved by Mohammed, on the side branch `stage1/combine`: shoppers can no longer break out of the message wrapper with capital letters or spaces; every reply drops links that are not the store's own and all pictures; logs hide phone and order numbers and keep 30 days; limits per chat, per visitor and a monthly spend ceiling per brand (step 7, partly); owner pages need a password; the website reader refuses the server's own network; past orders need a signed-in customer; `.env.*` files are ignored; the client's name removed from two files. Tests: 106 pass, 0 fail. Quality check: 47 of 50 (94%), unchanged. Not checked: a live model reply (no model key on the Mac), and the build image (Docker not running). Nothing saved to the main version.
