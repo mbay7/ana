@@ -20,33 +20,54 @@ _BOUNDARY = (
 )
 
 
+# Every fence tag, in any case and with any spacing ("</SHOPPER_MESSAGE>",
+# "< /shopper_message >"). Stripped from all fenced text so neither a shopper nor
+# a store document can close a fence early or open a new one.
+_FENCE_TAG_RE = re.compile(r"<\s*/?\s*(?:shopper_message|store_info|products)\s*>", re.IGNORECASE)
+
+
 def _fence(tag: str, text) -> str:
-    clean = str(text).replace(f"<{tag}>", "").replace(f"</{tag}>", "")
+    clean = _FENCE_TAG_RE.sub("", str(text))
     return f"<{tag}>\n{clean}\n</{tag}>"
 
-_LINK_RE = re.compile(r"https?://[^\s\)\]\"']+")
+_LINK_RE = re.compile(r"https?://[^\s\)\]\"'<>]+")
+# Markdown images load a remote file the moment the reply is shown, so a planted
+# image could leak data or show anything. Replies never carry images.
+_MD_IMAGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
+_EMPTY_MD_LINK_RE = re.compile(r"\[([^\]]*)\]\(\s*\)")
 
 
-def _strip_foreign_links(text, allowed_links):
+def _link_allowed(url: str, allowed) -> bool:
+    url = url.rstrip("/")
+    for a in allowed:
+        a = a.rstrip("/")
+        if not a:
+            continue
+        # The exact link, or a page under it. "shop.com.evil.net" is not "shop.com".
+        if url == a or url.startswith((a + "/", a + "?", a + "#")):
+            return True
+    return False
+
+
+def _strip_foreign_links(text, allowed_links=()):
     """Remove any URL from a reply that is not in the allowed (real) link set.
 
-    The model must only ever cite links that actually exist in the catalog; any
-    other URL it invents is stripped so a shopper never gets a fake link.
+    The model must only ever cite links that actually exist in the catalog or the
+    store's own documents; any other URL it invents is stripped so a shopper never
+    gets a fake link. Markdown images are always removed.
     """
     if not text:
         return text
+    text = _MD_IMAGE_RE.sub("", text)
     allowed = [a.strip() for a in allowed_links if a and a.strip()]
-    if not allowed:
-        return _LINK_RE.sub("", text)
 
     def _keep(m):
-        url = m.group(0).rstrip(".,;:!?")
-        for a in allowed:
-            if a.rstrip("/") and (url.startswith(a.rstrip("/")) or a.startswith(url)):
-                return m.group(0)
-        return ""
+        raw = m.group(0)
+        url = raw.rstrip(".,;:!?")
+        return raw if _link_allowed(url, allowed) else ""
 
-    return _LINK_RE.sub(_keep, text)
+    text = _LINK_RE.sub(_keep, text)
+    return _EMPTY_MD_LINK_RE.sub(r"\1", text)
 
 
 def _api_key() -> str | None:
@@ -105,7 +126,7 @@ def answer(question, hits, persona, model, max_tokens=250, threshold=None, absta
         ],
         model, max_tokens, api_key,
     )
-    return out
+    return _strip_foreign_links(out, _LINK_RE.findall(ctx))
 
 
 def recommend(question, products, persona, model, max_tokens=250, api_key=None, customer_ctx=None):
@@ -199,7 +220,7 @@ def greet(question, persona, model, max_tokens=140, api_key=None) -> str | None:
         [{"role": "system", "content": system}, {"role": "user", "content": _fence("shopper_message", question)}],
         model, max_tokens, api_key,
     )
-    return out
+    return _strip_foreign_links(out)
 
 
 _THANKS = ("thanks", "thank you", "thank", "thx", "ty", "cheers", "شكرا", "شكراً", "مشكور", "يعطيك العافية")
@@ -322,7 +343,7 @@ def small_talk_reply(kind, persona, model, max_tokens=80, api_key=None, question
         [{"role": "system", "content": system}, {"role": "user", "content": _fence("shopper_message", question) if question else kind}],
         model, max_tokens, api_key,
     )
-    return out
+    return _strip_foreign_links(out)
 
 
 def checkout(question, product, persona, model, max_tokens=150, api_key=None, customer_ctx=None, prelaunch=False):
