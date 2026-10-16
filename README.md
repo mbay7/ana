@@ -79,6 +79,18 @@ persona, and corpus. No core code changes. See `clients/README.md`.
   to say it does not know rather than invent. The abstention threshold makes
   that a hard guarantee instead of a hope.
 
+## Privacy and limits
+
+- **What is logged:** each question (to `data/<client>.jsonl`), whether it was answered, the top
+  source and the confidence. Before writing, emails, phone numbers and order-like numbers are
+  replaced with `[email]`, `[phone]`, `[order]` or `[number]`.
+- **How long it is kept:** 30 days. Older rows are deleted every time a new row is written.
+  Change it with `ANA_LOG_RETENTION_DAYS` (`0` keeps everything).
+- **Limits per chat:** message length (500 characters), messages per chat, messages per minute,
+  and a monthly spend ceiling per brand. See `.env.example` for the setting names.
+- **Owner pages (Usage, Build):** off unless both `ANA_ADMIN=1` and `ANA_ADMIN_PASSWORD` are set,
+  and the password is entered.
+
 ## Licence
 
 Ana is source-available under the PolyForm Noncommercial License 1.0.0 (see `LICENSE`).
