@@ -1,4 +1,6 @@
 """Answer a question from retrieved context, and recommend products, persona-prompted."""
+import contextlib
+import contextvars
 import json
 import os
 import re
@@ -88,6 +90,34 @@ def _api_key() -> str | None:
     return None
 
 
+# Token usage of each model call made inside `track_usage()`, for the spend ceiling.
+_usage = contextvars.ContextVar("ana_usage", default=None)
+
+
+@contextlib.contextmanager
+def track_usage():
+    """Collect {prompt_tokens, completion_tokens} for every model call in this block."""
+    calls = []
+    token = _usage.set(calls)
+    try:
+        yield calls
+    finally:
+        _usage.reset(token)
+
+
+def _note_usage(messages, data, content):
+    calls = _usage.get()
+    if calls is None:
+        return
+    u = (data or {}).get("usage") or {}
+    pt, ct = u.get("prompt_tokens"), u.get("completion_tokens")
+    if not isinstance(pt, int) or not isinstance(ct, int):
+        # No usage reported: estimate about four characters per token.
+        pt = sum(len(str(m.get("content", ""))) for m in messages) // 4
+        ct = len(content or "") // 4
+    calls.append({"prompt_tokens": pt, "completion_tokens": ct})
+
+
 def _complete(messages, model, max_tokens=250, api_key=None):
     key = api_key or _api_key()
     if not key:
@@ -103,9 +133,8 @@ def _complete(messages, model, max_tokens=250, api_key=None):
     except Exception:
         return None
     choices = data.get("choices") or []
-    if not choices:
-        return None
-    content = (choices[0].get("message") or {}).get("content")
+    content = (choices[0].get("message") or {}).get("content") if choices else None
+    _note_usage(messages, data, content if isinstance(content, str) else "")
     return content.strip() if isinstance(content, str) else None
 
 

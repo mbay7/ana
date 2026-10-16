@@ -11,7 +11,8 @@ from src.generate import MAX_QUESTION_CHARS, answer, checkout, greet, is_buy_int
 from src.loaders import load_markdown_dir
 from src.recommend import embed_catalog, load_catalog, recommend_products
 from src.retrieve import retrieve
-from src import shopify
+from src import limits, shopify
+from src.generate import track_usage
 
 
 def build(cfg):
@@ -36,6 +37,18 @@ def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers,
     question = (question or "").strip()[:MAX_QUESTION_CHARS]
     if not question:
         return "What can I help you find?"
+    # Monthly spend ceiling per brand: refuse politely once it is reached.
+    if limits.over_budget(cfg):
+        log(cfg["analytics_log"], question=question, answered=False, source="limit", confidence=None, error="monthly spend ceiling")
+        return limits.OVER_BUDGET
+    with track_usage() as usage:
+        try:
+            return _ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key, memory)
+        finally:
+            limits.record_spend(cfg, usage)
+
+
+def _ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key=None, memory=None):
     qv = embedder.embed([question])[0]
     model = cfg["model"]["generate"]
     max_tokens = cfg.get("max_tokens", 250)

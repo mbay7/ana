@@ -9,7 +9,8 @@ from src.chunking import chunk_documents
 from src.config import load_config
 from src.customers import identify, load_customers, profile_prompt
 from src.embed import Embedder
-from src.generate import answer, recommend
+from src.generate import MAX_QUESTION_CHARS, answer, recommend
+from src import limits
 from src.loaders import load_markdown_dir
 from src.persist import delete, load_all, save
 from src.recommend import embed_catalog, load_catalog, recommend_products
@@ -37,6 +38,25 @@ def build():
         customers = load_customers(cfg.get("customers_file"))
     catalog_vecs = embed_catalog(catalog, embedder)
     return cfg, chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers
+
+
+@st.cache_resource
+def visitor_limiter():
+    # One limiter for the whole server, so a visitor opening many chats is still counted once.
+    return limits.RateLimiter()
+
+
+def visitor_key():
+    """The visitor's address as reported by Cloudflare, or None when not behind it.
+
+    The direct connection is usually the local proxy, so it is not used: keying on
+    it would make every visitor share one limit.
+    """
+    try:
+        headers = st.context.headers
+        return headers.get("CF-Connecting-IP") or None
+    except Exception:
+        return None
 
 
 def make_persona(name, voice):
@@ -182,15 +202,23 @@ else:
         with st.chat_message(m_["role"]):
             st.markdown(m_["content"])
 
-    if prompt := st.chat_input(ui.get("placeholder", "Ask…")):
+    if prompt := st.chat_input(ui.get("placeholder", "Ask…"), max_chars=MAX_QUESTION_CHARS):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
         with st.chat_message("assistant"):
-            with st.spinner("…"):
-                a = chat.ask(
-                    chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs,
-                    customers, cfg, prompt, api_key=api_key, memory=st.session_state.memory,
-                )
+            refusal = limits.check_chat(st.session_state, cfg)
+            if refusal is None and not visitor_limiter().allow(
+                visitor_key(), limits.setting(cfg, "max_visitor_messages_per_minute")
+            ):
+                refusal = limits.TOO_FAST
+            if refusal is not None:
+                a = refusal
+            else:
+                with st.spinner("…"):
+                    a = chat.ask(
+                        chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs,
+                        customers, cfg, prompt, api_key=api_key, memory=st.session_state.memory,
+                    )
             st.markdown(a)
         st.session_state.messages.append({"role": "assistant", "content": a})
