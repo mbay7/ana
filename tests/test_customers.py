@@ -18,12 +18,32 @@ CUSTOMERS = [
 ]
 
 
-def test_identify_by_email():
-    assert identify("hi, this is omar@example.com", CUSTOMERS)["name"] == "Omar"
+def test_identify_is_off_by_default():
+    # Identity must come from a signed-in session, not from what a shopper types.
+    assert identify("hi, this is omar@example.com", CUSTOMERS) is None
 
 
-def test_identify_by_name():
-    assert identify("I'm Sarah, can I return something?", CUSTOMERS)["name"] == "Sarah"
+def test_identify_refuses_without_session_even_when_enabled():
+    # Typing someone's email must never unlock their order history.
+    assert identify("hi, this is omar@example.com", CUSTOMERS, enabled=True) is None
+
+
+def test_identify_by_signed_in_session_id():
+    assert identify("where is my order?", CUSTOMERS, enabled=True, session_customer_id="2")["name"] == "Omar"
+
+
+def test_identify_session_id_ignored_when_disabled_or_unknown():
+    assert identify("hi", CUSTOMERS, enabled=False, session_customer_id="2") is None
+    assert identify("hi", CUSTOMERS, enabled=True, session_customer_id="999") is None
+
+
+def test_identify_session_wins_over_typed_email():
+    c = identify("I am sarah@example.com", CUSTOMERS, enabled=True, session_customer_id="2")
+    assert c["name"] == "Omar"
+
+
+def test_identify_never_by_name():
+    assert identify("I'm Sarah, can I return something?", CUSTOMERS, enabled=True) is None
 
 
 def test_identify_unknown():

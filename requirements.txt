@@ -3,3 +3,7 @@ requests
 sentence-transformers
 numpy
 pyyaml
+# API (api/) — one image runs the chat page and the API (Stage 1 step 9)
+fastapi
+uvicorn[standard]
+cryptography

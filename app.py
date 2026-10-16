@@ -1,5 +1,4 @@
 """Streamlit chat UI (repo-root entry; runs on Streamlit Community Cloud or locally)."""
-import os
 
 import streamlit as st
 
@@ -9,7 +8,9 @@ from src.chunking import chunk_documents
 from src.config import load_config
 from src.customers import identify, load_customers, profile_prompt
 from src.embed import Embedder
-from src.generate import answer, recommend
+from src.generate import MAX_QUESTION_CHARS, answer, recommend, track_usage
+from src import limits
+from src.admin import LoginGuard, admin_available, try_login
 from src.loaders import load_markdown_dir
 from src.persist import delete, load_all, save
 from src.recommend import embed_catalog, load_catalog, recommend_products
@@ -39,6 +40,26 @@ def build():
     return cfg, chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers
 
 
+@st.cache_resource
+def server_limiter():
+    # One limiter for the whole server process: a reload or a new chat cannot reset it.
+    return limits.RateLimiter()
+
+
+@st.cache_resource
+def login_guard():
+    # Wrong owner-password guesses, counted on the server (per visitor and overall).
+    return LoginGuard()
+
+
+def current_visitor():
+    """The visitor's address, only when ANA_BEHIND_CLOUDFLARE says Cloudflare set it."""
+    try:
+        return limits.visitor_key(st.context.headers)
+    except Exception:
+        return None
+
+
 def make_persona(name, voice):
     base = "You are a friendly assistant" + (f" called {name}" if name else "") + ". Answer questions from the user's own content only."
     if voice:
@@ -65,9 +86,24 @@ if cfg.get("language") == "ar":
         unsafe_allow_html=True,
     )
 
-# Usage/Build are admin-only: they expose shopper questions and can fetch URLs
-# server-side. Hide them unless ANA_ADMIN is explicitly set in the environment.
-admin = os.environ.get("ANA_ADMIN", "").strip().lower() in ("1", "true", "yes", "on")
+# Usage/Build are owner-only: they expose shopper questions and can fetch URLs
+# server-side. They need ANA_ADMIN switched on AND the ANA_ADMIN_PASSWORD entered;
+# with no password set they stay off.
+admin = False
+if admin_available():
+    if st.session_state.get("_ana_admin_ok"):
+        admin = True
+    else:
+        given = st.sidebar.text_input("Owner password", type="password")
+        if given:
+            result = try_login(given, login_guard(), current_visitor())
+            if result == "ok":
+                st.session_state["_ana_admin_ok"] = True
+                admin = True
+            elif result == "locked":
+                st.sidebar.error("Too many wrong attempts. Try again later.")
+            else:
+                st.sidebar.error("Wrong password.")
 page = st.sidebar.radio("View", ["Chat", "Usage", "Build"]) if admin else "Chat"
 
 if page == "Usage":
@@ -163,7 +199,15 @@ elif page == "Build":
                     qv = embedder.embed([q])[0]
                     hits = retrieve(q, qv, b["vecs"], b["chunks"], top_k=4)
                     threshold = cfg["retrieval"].get("threshold")
-                    a_out = answer(q, hits, b["persona"], cfg["model"]["generate"], max_tokens=250, threshold=threshold, api_key=api_key)
+                    held = limits.reserve(cfg, limits.estimate_usd(cfg, q))
+                    if held is None:
+                        a_out = limits.OVER_BUDGET
+                    else:
+                        with track_usage() as usage:
+                            try:
+                                a_out = answer(q, hits, b["persona"], cfg["model"]["generate"], max_tokens=250, threshold=threshold, api_key=api_key)
+                            finally:
+                                limits.settle(cfg, held, usage)
                 st.markdown(a_out)
             st.session_state.built_msgs.append({"role": "assistant", "content": a_out})
     else:
@@ -182,15 +226,21 @@ else:
         with st.chat_message(m_["role"]):
             st.markdown(m_["content"])
 
-    if prompt := st.chat_input(ui.get("placeholder", "Ask…")):
+    if prompt := st.chat_input(ui.get("placeholder", "Ask…"), max_chars=MAX_QUESTION_CHARS):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
         with st.chat_message("assistant"):
-            with st.spinner("…"):
-                a = chat.ask(
-                    chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs,
-                    customers, cfg, prompt, api_key=api_key, memory=st.session_state.memory,
-                )
+            # Server-wide and per-visitor counts live on the server; the per-chat
+            # count in session_state is an extra layer a reload can reset.
+            refusal = limits.check_message(st.session_state, cfg, server_limiter(), current_visitor())
+            if refusal is not None:
+                a = refusal
+            else:
+                with st.spinner("…"):
+                    a = chat.ask(
+                        chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs,
+                        customers, cfg, prompt, api_key=api_key, memory=st.session_state.memory,
+                    )
             st.markdown(a)
         st.session_state.messages.append({"role": "assistant", "content": a})

@@ -6,10 +6,7 @@ pre-chat form) rather than a local file, but the shape — load a profile, injec
 who the customer is into the answer — is the same.
 """
 import json
-import re
 from pathlib import Path
-
-_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 
 
 def load_customers(path) -> list[dict]:
@@ -25,23 +22,21 @@ def load_customers(path) -> list[dict]:
     return data if isinstance(data, list) else []
 
 
-def identify(message, customers, enabled=False) -> dict | None:
+def identify(message, customers, enabled=False, session_customer_id=None) -> dict | None:
     """Return the customer for a signed-in session, or None.
 
-    Identity must come from an authenticated session, never from free-form text
-    a shopper types. Until a session is wired this returns None, so no name,
-    email, or order history is injected into the prompt from chat text.
+    Identity must come from an authenticated session (a customer id the store's
+    login has verified), never from free-form text a shopper types. Without a
+    session id nothing is looked up, even when customers are enabled, so no name,
+    email or order history reaches the prompt from chat text. `message` is kept
+    for call compatibility and is not used for matching.
     """
-    if not enabled or not customers or not message:
+    if not enabled or not customers or not session_customer_id:
         return None
-    # Exact-email match only as a stopgap; a real deployment must pass a
-    # signed-in customer id, not infer identity from message text.
-    m = _EMAIL.search(message)
-    if m:
-        email = m.group(0).lower()
-        for c in customers:
-            if (c.get("email") or "").lower() == email:
-                return c
+    wanted = str(session_customer_id)
+    for c in customers:
+        if str(c.get("id", "")) == wanted:
+            return c
     return None
 
 

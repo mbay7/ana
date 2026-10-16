@@ -10,7 +10,7 @@ Usage:
   python eval/run_llm_eval.py                 # judge a small sample (cheap)
   python eval/run_llm_eval.py --all           # judge every answerable question
   python eval/run_llm_eval.py --injections    # also run injection-resistance checks
-  python eval/run_llm_eval.py --client vlur
+  python eval/run_llm_eval.py --client <client>   # any folder under clients/
 """
 
 import argparse

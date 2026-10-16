@@ -11,6 +11,16 @@ data/
 .streamlit/
 .idea/
 .vscode/
-clients/vlur
+# Only the public example brands go into the image; real client folders never do
+# (same rule as .gitignore).
+clients/*
+!clients/demo/
+!clients/_template/
+!clients/arabic/
 *.md
+# Brand documents are .md files and must stay in the image. ("*.md" above only
+# matches the top folder, but this keeps it safe if that rule is ever widened.)
+!clients/demo/corpus/**
+!clients/_template/corpus/**
+!clients/arabic/corpus/**
 .DS_Store

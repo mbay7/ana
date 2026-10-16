@@ -7,11 +7,12 @@ from src.chunking import chunk_documents
 from src.config import load_config
 from src.customers import identify, load_customers, profile_prompt
 from src.embed import Embedder
-from src.generate import answer, checkout, greet, is_buy_intent, is_chitchat, is_farewell, is_greeting, is_medical_request, is_routine_intent, is_thanks, is_vague_product_request, recommend, routine, small_talk_reply
+from src.generate import MAX_QUESTION_CHARS, answer, checkout, greet, is_buy_intent, is_chitchat, is_farewell, is_greeting, is_medical_request, is_routine_intent, is_thanks, is_vague_product_request, recommend, routine, small_talk_reply
 from src.loaders import load_markdown_dir
 from src.recommend import embed_catalog, load_catalog, recommend_products
 from src.retrieve import retrieve
-from src import shopify
+from src import limits, shopify
+from src.generate import track_usage
 
 
 def build(cfg):
@@ -31,7 +32,26 @@ def build(cfg):
     return chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers
 
 
-def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key=None, memory=None):
+def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key=None, memory=None, session_customer_id=None):
+    # Cap shopper input: bounds LLM/embedding cost per message and shrinks the injection surface.
+    question = (question or "").strip()[:MAX_QUESTION_CHARS]
+    if not question:
+        return "What can I help you find?"
+    # Monthly spend ceiling per brand: hold this message's likely cost BEFORE any
+    # model call, so parallel messages cannot overshoot; refuse politely if it
+    # would pass the ceiling or the spend file cannot be checked.
+    reservation = limits.reserve(cfg, limits.estimate_usd(cfg, question))
+    if reservation is None:
+        log(cfg["analytics_log"], question=question, answered=False, source="limit", confidence=None, error="monthly spend ceiling")
+        return limits.OVER_BUDGET
+    with track_usage() as usage:
+        try:
+            return _ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key, memory, session_customer_id)
+        finally:
+            limits.settle(cfg, reservation, usage)
+
+
+def _ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers, cfg, question, api_key=None, memory=None, session_customer_id=None):
     qv = embedder.embed([question])[0]
     model = cfg["model"]["generate"]
     max_tokens = cfg.get("max_tokens", 250)
@@ -79,7 +99,8 @@ def ask(chunks, vecs, bm25, embedder, persona, catalog, catalog_vecs, customers,
             return "I can't give medical advice. It's best to check with a doctor or dermatologist. I'm still happy to help you find a product if you'd like."
         log(log_path, question=question, answered=True, source="medical", confidence=None)
         return out
-    customer = identify(question, customers, enabled=(cfg.get("customers") or {}).get("enabled", False))
+    # No signed-in session is wired yet, so no customer is identified (order history stays private).
+    customer = identify(question, customers, enabled=(cfg.get("customers") or {}).get("enabled", False), session_customer_id=session_customer_id)
     cust_ctx = profile_prompt(customer) if customer else None
     matches = recommend_products(qv, catalog, catalog_vecs)
     # Retrieval is cheap to compute up front, and lets us prefer a store-info

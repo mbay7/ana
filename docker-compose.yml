@@ -1,18 +1,44 @@
 # ana — production compose. Everything bound to 127.0.0.1; only the reverse
 # proxy / Cloudflare Tunnel faces the internet. Secrets come from .env (not committed).
+# One command starts both services from the same image:  docker compose up -d
+#   ana      — the chat page (Streamlit)   127.0.0.1:8501   health: /_stcore/health
+#   ana-api  — the API (FastAPI)           127.0.0.1:8000   health: /health
+# ANA_IMAGE overrides the image (CI uses a locally built one).
+x-ana: &ana
+  image: ${ANA_IMAGE:-ghcr.io/mbay7/ana:latest}
+  restart: unless-stopped
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    CLIENT: ${CLIENT:-demo}
+  volumes:
+    - model-cache:/app/.cache/huggingface
+    - ana-data:/app/data
+
 services:
   ana:
-    image: ghcr.io/mbay7/ana:latest
-    restart: unless-stopped
+    <<: *ana
     ports:
       - "127.0.0.1:8501:8501"
-    env_file:
-      - .env
-    environment:
-      CLIENT: ${CLIENT:-demo}
-    volumes:
-      - model-cache:/app/.cache/huggingface
-      - ana-data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8501/_stcore/health', timeout=4).status == 200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
+
+  ana-api:
+    <<: *ana
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4).status == 200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
 
 volumes:
   model-cache:

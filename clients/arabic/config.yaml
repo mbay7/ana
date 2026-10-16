@@ -25,3 +25,5 @@ ui:
 channels:
   - web
   - whatsapp
+# Websites allowed to call this assistant through the API (exact origins, e.g. https://shop.example.com).
+allowed_origins: []

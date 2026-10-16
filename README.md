@@ -79,6 +79,26 @@ persona, and corpus. No core code changes. See `clients/README.md`.
   to say it does not know rather than invent. The abstention threshold makes
   that a hard guarantee instead of a hope.
 
+## Privacy and limits
+
+- **What is logged:** each question (to `data/<client>.jsonl`), whether it was answered, the top
+  source and the confidence. Before writing, emails, phone numbers and order-like numbers are
+  replaced with `[email]`, `[phone]`, `[order]` or `[number]`.
+- **How long it is kept:** 30 days. Older rows are deleted every time a new row is written.
+  Change it with `ANA_LOG_RETENTION_DAYS` (`0` keeps everything).
+- **Limits:** message length (500 characters); messages per minute for the whole server
+  (always on); messages per minute and per hour per visitor, kept on the server so a reload
+  does not reset them (only when `ANA_BEHIND_CLOUDFLARE=1`, since the visitor's address is
+  otherwise forgeable); messages per chat; and a monthly spend ceiling per brand, with each
+  message's likely cost held before the model is called. If the spend file cannot be read or
+  written, Ana refuses rather than overspends. See `.env.example` for the setting names.
+  **The real per-address limit must also be set at Cloudflare**; the in-app one is a backstop.
+- **Owner pages (Usage, Build):** off unless both `ANA_ADMIN=1` and `ANA_ADMIN_PASSWORD` are set,
+  and the password is entered. After 5 wrong guesses from one visitor, or 20 from anyone, in
+  15 minutes, the password box locks. Wrong attempts are logged without what was typed.
+- **Website reader (Build):** only public http(s) sites; the address is checked once and the
+  connection goes to that checked address, at most 5 redirects, each checked again.
+
 ## Licence
 
 Ana is source-available under the PolyForm Noncommercial License 1.0.0 (see `LICENSE`).

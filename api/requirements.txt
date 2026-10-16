@@ -1,7 +1,2 @@
-fastapi
-uvicorn[standard]
-cryptography
-pyyaml
-requests
-numpy
-sentence-transformers
+# The API uses the same pinned packages as the chat page.
+-r ../requirements.lock
