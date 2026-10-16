@@ -1,6 +1,6 @@
 {
-  "_note": "Quality bar for eval/run_eval.py. Floor = 'never worse than today' (baseline 2026-10-16, demo client: dense recall@5 47/50, 0/50 wrong 'I don't know', 2/10 right 'I don't know'). Raise a number only when Ana genuinely improves; never lower one without Mohammed's yes.",
+  "_note": "Quality bar for eval/run_eval.py. Floor = 'never worse than today' (baseline 2026-10-16, demo client: dense recall@5 47/50, 0/50 wrong 'I don't know', 2/10 right 'I don't know'). Raised 2026-10-16 to 5/10 after the abstain threshold moved 0.32 -> 0.38 (Mohammed's yes). Raise a number only when Ana genuinely improves; never lower one without Mohammed's yes.",
   "min_hits_at5": 47,
   "max_wrong_idk": 0,
-  "min_right_idk": 2
+  "min_right_idk": 5
 }

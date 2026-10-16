@@ -8,7 +8,7 @@ model:
 
 retrieval:
   top_k: 4
-  threshold: 0.32   # top-hit cosine below this -> abstain ("I don't know")
+  threshold: 0.38   # top-hit cosine below this -> abstain ("I don't know"); 0.38 chosen 2026-10-16 (eval: 5/10 unanswerable declined, 0/50 answerable lost)
   hybrid: false
 
 corpus_dir: corpus

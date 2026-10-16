@@ -45,7 +45,7 @@ def test_committed_bar_is_never_below_baseline():
     t = load_thresholds()
     assert t["min_hits_at5"] >= 47
     assert t["max_wrong_idk"] <= 0
-    assert t["min_right_idk"] >= 2
+    assert t["min_right_idk"] >= 5
 
 
 @pytest.mark.parametrize("bad", [{"min_hits_at5": -1}, {"max_wrong_idk": "0"}, {"min_right_idk": None}, {}])

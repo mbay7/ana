@@ -9,7 +9,7 @@ model:
 
 retrieval:
   top_k: 4
-  threshold: 0.32
+  threshold: 0.38
   hybrid: false
 
 corpus_dir: corpus

@@ -1,5 +1,6 @@
 # ana — engine image (Streamlit UI). Python pinned, non-root user, model cache outside the image.
-FROM python:3.12-slim
+# Base image pinned by digest (python:3.12-slim as of 2026-10-16); bump deliberately.
+FROM python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
 
 # libgomp1 is needed by torch/sentence-transformers at runtime.
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
@@ -8,8 +9,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
 WORKDIR /app
 
 # Install dependencies first so this layer is cached across code-only changes.
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# Exact versions from requirements.lock (regenerate with: uv pip compile requirements.txt -o requirements.lock
+#   --python-version 3.12 --python-platform x86_64-manylinux_2_28).
+COPY requirements.lock ./
+RUN pip install --no-cache-dir -r requirements.lock
 
 COPY . .
 
